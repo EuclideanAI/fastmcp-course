@@ -99,15 +99,17 @@ class Content:
         if ancestors_data:
             for ancestor in ancestors_data:
                 # Create simplified Content objects for ancestors
-                ancestors.append(cls(
-                    id=ancestor.get("id", ""),
-                    title=ancestor.get("title", ""),
-                    type=ContentType(ancestor.get("type", "page")),
-                    space=space,  # Use same space as parent
-                    creator=creator,  # This is a simplification
-                    version={},  # Simplified
-                    status=ancestor.get("status", None)
-                ))
+                ancestors.append(
+                    cls(
+                        id=ancestor.get("id", ""),
+                        title=ancestor.get("title", ""),
+                        type=ContentType(ancestor.get("type", "page")),
+                        space=space,  # Use same space as parent
+                        creator=creator,  # This is a simplification
+                        version={},  # Simplified
+                        status=ancestor.get("status", None),
+                    )
+                )
 
         # Process body in different formats
         body = {}
@@ -126,14 +128,16 @@ class Content:
         for _content_type, content_list in children_data.items():
             if isinstance(content_list, dict) and "results" in content_list:
                 for child in content_list.get("results", []):
-                    children.append(cls(
-                        id=child.get("id", ""),
-                        title=child.get("title", ""),
-                        type=ContentType(child.get("type", "page")),
-                        space=space,  # Use same space as parent
-                        creator=creator,  # This is a simplification
-                        version={},  # Simplified
-                    ))
+                    children.append(
+                        cls(
+                            id=child.get("id", ""),
+                            title=child.get("title", ""),
+                            type=ContentType(child.get("type", "page")),
+                            space=space,  # Use same space as parent
+                            creator=creator,  # This is a simplification
+                            version={},  # Simplified
+                        )
+                    )
 
         return cls(
             id=api_data.get("id", ""),

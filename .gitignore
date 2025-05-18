@@ -2,3 +2,5 @@
 /*.html
 /*.ipynb
 /*.log
+.venv
+__pycache__/

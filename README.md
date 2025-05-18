@@ -1,4 +1,37 @@
-# Confluence FastMCP Server
+# FastMCP from Zero to Hero: Course Outline
+
+## Introduction
+
+- What's MCP (Model Context Protocol)
+- Why do we need it (key features and benefits)
+- Live Demo with Atlassian MCP Server
+
+## Quick Start
+
+- Set up the dev environment
+- Creating your first server
+- Understand the core building blocks - Tools, Resources, Prompts, Context
+
+## Project 1 - Confluence MCP
+
+- Building a Confluence MCP
+- Integrate with VS Code Copilot and Claude Desktop
+
+## Project 2 - Network, Authentication and Remote Server
+
+- Transport protocols
+- Authentication
+- Remote Server Deployment
+
+## Project 3 - Advanced Topics
+
+- Mounting to FastAPI
+- Sampling
+- Proxy Server
+
+<br>
+
+# Project 1 - Confluence FastMCP Server
 
 A Model Context Protocol (MCP) server for interacting with Atlassian Confluence, built with Python and FastMCP.
 
@@ -24,172 +57,79 @@ This project uses modern Python development tools to ensure code quality and con
 
 ### Setting Up Development Environment
 
-1. Clone this repository:
+1. **Clone the project branch:**
+
+   - **Project 1 (Confluence MCP):**
+     ```bash
+     git clone -b project1 https://github.com/EuclideanAI/fastmcp-course.git
+     cd fastmcp-course
+     ```
+   - **Project 2 (Network, Authentication and Remote Server):**
+     ```bash
+     git clone -b project2 https://github.com/EuclideanAI/fastmcp-course.git
+     cd fastmcp-course
+     ```
+   - **Project 3 (Advanced Topics):**
+     ```bash
+     git clone -b project3 https://github.com/EuclideanAI/fastmcp-course.git
+     cd fastmcp-course
+     ```
+
+2. **Install dependencies using [uv](https://docs.astral.sh/uv/getting-started/installation/):**
+
+   - If you don't have `uv` installed, follow the [installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+   - If `uv` is already installed, sync dependencies:
+     ```bash
+     uv sync
+     ```
+
+3. **Lint your code with Ruff:**
 
    ```bash
-   git clone <repository-url>
-   cd fastmcp-course
+   uv run ruff check .
    ```
 
-2. Create a virtual environment using uv:
-
+4. **Format your code with Ruff:**
    ```bash
-   uv venv
+   uv run ruff format .
    ```
 
-3. Activate the virtual environment:
+### Code Quality Standards - System Prompt for Copilot Agent
 
-   ```bash
-   # On macOS/Linux
-   source .venv/bin/activate
+The system prompts saved under `.github/prompts` outline the code quality standard for copilot coding agent (it will be included as system prompt in every conversation):
 
-   # On Windows
-   .\.venv\Scripts\activate
-   ```
-
-4. Install dependencies:
-
-   ```bash
-   # Install all dependencies including development tools
-   uv pip install -e ".[dev]"
-
-   # Or for production dependencies only
-   uv pip install -e .
-
-   # If you need to sync with the exact versions in uv.lock
-   uv pip sync
-   ```
-
-5. Set up pre-commit hooks:
-   ```bash
-   pre-commit install
-   ```
-
-### Managing Dependencies with uv
-
-This project uses uv.lock for reproducible environments. When dependencies change:
-
-```bash
-# After modifying pyproject.toml, update the lock file
-uv pip compile pyproject.toml -o uv.lock
-
-# To install packages based on the lock file exactly
-uv pip sync
-```
-
-### Code Quality Standards
-
-This project enforces the following standards:
-
-- **Type Annotations**: All functions must have parameter and return type annotations
-- **Code Formatting**: Black with 88 character line length
-- **Import Sorting**: isort configured with Black compatibility
-- **Linting**: Ruff for fast linting and error detection
-- **Method Decoration**: Follow the patterns in `.github/prompts/decorating-methods.prompt.md` for FastMCP tools
-
-### VS Code Integration
-
-This repository includes VS Code settings that automatically configure:
-
-- Format on save with Black
-- Linting with Ruff
-- Import organization with isort
-- Type checking with mypy
-
-Recommended extensions:
-
-- Python (ms-python.python)
-- Black Formatter (ms-python.black-formatter)
-- Ruff (charliermarsh.ruff)
-- Even Better TOML (tamasfe.even-better-toml)
+- planning.prompt.md
 
 ## Requirements
 
-- Python 3.10+
-- Confluence instance (Cloud or Server)
+You will need to have the following installed/ready:
+
+- Python 3.10+ (Can install this through uv)
+- Confluence instance (Cloud)
 - Confluence API credentials
-
-## Installation
-
-1. Clone this repository:
-
-```
-git clone <repository-url>
-cd fastmcp-course
-```
-
-2. Install dependencies:
-
-```bash
-# Install with uv (recommended)
-uv pip install -e .
-
-# Or install with development dependencies
-uv pip install -e ".[dev]"
-
-# If you prefer pip instead of uv
-pip install -e .
-pip install -e ".[dev]"  # For development dependencies
-```
 
 ## Configuration
 
-Configure the application via environment variables:
+Configure the application via environment variables (create `.env` file):
 
-```bash
-export CONFLUENCE_URL="https://your-domain.atlassian.net"
-export CONFLUENCE_USERNAME="your-email@example.com"
-export CONFLUENCE_API_TOKEN="your-api-token"
-# OR use a Personal Access Token (PAT) instead of username/api_token
-# export CONFLUENCE_PAT="your-personal-access-token"
+```
+CONFLUENCE_URL="https://your-domain.atlassian.net"
+CONFLUENCE_USERNAME="your-email@example.com"
+CONFLUENCE_API_TOKEN="your-api-token"
 ```
 
 ## Usage
 
-Run the MCP server:
+Run the FastMCP server with Inspector:
 
 ```bash
-python server.py
+fastmcp dev server.py
 ```
 
-Connect to the server from an MCP-compatible client such as Claude, GPT-4, or a custom application.
+Run the FastMCP server as a normal mcp server in local:
 
-## MCP Tool Examples
-
-### Search Confluence
-
-```python
-result = await search_confluence(
-    query="project documentation",
-    spaces=["DEV", "TEAM"],
-    limit=5
-)
-```
-
-### Get Page Content
-
-```python
-page = await get_page(page_id="123456789")
-```
-
-### Create a New Page
-
-```python
-new_page = await create_page(
-    title="Meeting Notes",
-    content="<p>Discussion points from today's meeting</p>",
-    space_key="TEAM",
-    parent_id="123456789"
-)
-```
-
-### Add a Comment
-
-```python
-comment = await add_comment(
-    page_id="123456789",
-    content="Great document, thanks for sharing!"
-)
+```bash
+uv run server.py
 ```
 
 ## Project Structure
@@ -211,19 +151,6 @@ fastmcp-course/
 └── README.md              # Project documentation
 ```
 
-## Error Handling
-
-The server implements comprehensive error handling:
-
-- API error handling with meaningful error messages
-- Rate limiting awareness with backoff strategies
-- Connection error recovery
-- Detailed logging with configurable verbosity
-
 ## License
 
-[Specify your license here]
-
-## Contributing
-
-[Specify contribution guidelines here]
+[MIT]
