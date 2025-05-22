@@ -307,6 +307,7 @@ dev = [
 [package.dev-dependencies]
 dev = [
     { name = "ipykernel" },
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -326,7 +327,10 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "ipykernel", specifier = ">=6.29.5" }]
+dev = [
+    { name = "ipykernel", specifier = ">=6.29.5" },
+    { name = "pytest", specifier = ">=8.3.5" },
+]
 
 [[package]]
 name = "debugpy"
