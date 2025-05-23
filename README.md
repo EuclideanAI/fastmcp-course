@@ -115,7 +115,7 @@ Configure the application via environment variables (create `.env` file):
 ```
 CONFLUENCE_URL="https://your-domain.atlassian.net"
 CONFLUENCE_USERNAME="your-email@example.com"
-CONFLUENCE_API_TOKEN="your-api-token"
+CONFLUENCE_PAT="your-api-token"
 ```
 
 ## Usage
