@@ -1,3 +1,5 @@
+"""Tools for page operations in Confluence."""
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -5,6 +7,8 @@ from fastmcp import Context
 
 
 class PageTools:
+    """Tools for interacting with Confluence pages."""
+
     @staticmethod
     async def get_page(
         ctx: Context,
@@ -12,11 +16,11 @@ class PageTools:
         include_body: bool = True,
     ) -> Dict[str, Any]:
         """
-        Get Confluence page content and metadata by ID
+        Get Confluence page content and metadata by ID.
 
         Args:
             page_id: The ID of the Confluence page
-            include_body: Whether to include the full page content (default: True)
+            include_body: Whether to include the full page content
 
         Returns:
             Dictionary with page information
@@ -24,34 +28,19 @@ class PageTools:
         client = ctx.request_context.lifespan_context.confluence
 
         try:
-            expand = ["space", "version", "ancestors", "children.page", "creator"]
-            if include_body:
-                expand.extend(["body.view", "body.storage"])
-
-            page = await client.get_page(page_id=page_id, expand=expand)
-            logger = logging.getLogger(__name__)
-            logger.info(f"Fetched page: {page}")
-            result = {
-                "id": page.id,
-                "title": page.title,
-                "type": page.type.value,
-                "space": {"key": page.space.key, "name": page.space.name},
-                "creator": {
-                    "id": page.creator.id,
-                    "display_name": page.creator.display_name,
-                },
-                "version": page.version.get("number", 1),
+            page = await client.get_page(page_id=page_id, include_body=include_body)
+            # Log the payload to a local log file
+            logging.basicConfig(filename="confluence_client.log", level=logging.INFO)
+            logging.info("Payload for page_id %s: %s", page_id, page.__dict__)
+            return {
+                "status": "success",
+                "page": page.__dict__,
             }
-
-            if include_body and page.body:
-                if "storage" in page.body:
-                    result["body_storage"] = page.body.get("storage", {}).get(
-                        "value", ""
-                    )
-
-            return {"status": "success", "page": result}
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
     async def create_page(
@@ -59,11 +48,11 @@ class PageTools:
         title: str,
         content: str,
         space_key: str,
-        parent_id: Optional[str] = None,
+        parent_id: Optional[int] = None,
         content_format: str = "storage",
     ) -> Dict[str, Any]:
         """
-        Create a new Confluence page
+        Create a new Confluence page.
 
         Args:
             title: Title of the page
@@ -79,24 +68,21 @@ class PageTools:
 
         try:
             page = await client.create_page(
-                title=title,
-                body=content,
                 space_key=space_key,
+                title=title,
+                content=content,
                 parent_id=parent_id,
-                representation=content_format,
+                content_format=content_format,
             )
-
             return {
                 "status": "success",
-                "page": {
-                    "id": page.id,
-                    "title": page.title,
-                    "space_key": page.space.key,
-                    "url": f"{client.config.url}/wiki/spaces/{page.space.key}/pages/{page.id}/{page.title.replace(' ', '+')}",
-                },
+                "page": page.__dict__,
             }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
     async def update_page(
@@ -109,13 +95,13 @@ class PageTools:
         version_comment: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Update an existing Confluence page
+        Update an existing Confluence page.
 
         Args:
             page_id: ID of the page to update
             title: New title of the page
             content: New content of the page
-            minor_edit: Whether this is a minor edit (default: False)
+            minor_edit: Whether this is a minor edit
             content_format: Content format ('storage' for XHTML, 'wiki' for wiki markup)
             version_comment: Optional comment for this version
 
@@ -128,29 +114,28 @@ class PageTools:
             page = await client.update_page(
                 page_id=page_id,
                 title=title,
-                body=content,
+                content=content,
                 minor_edit=minor_edit,
-                representation=content_format,
+                content_format=content_format,
                 version_comment=version_comment,
             )
-
             return {
                 "status": "success",
-                "page": {
-                    "id": page.id,
-                    "title": page.title,
-                    "space_key": page.space.key,
-                    "version": page.version.get("number", 1),
-                    "url": f"{client.config.url}/wiki/spaces/{page.space.key}/pages/{page.id}/{page.title.replace(' ', '+')}",
-                },
+                "page": page.__dict__,
             }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
-    async def delete_page(ctx: Context, page_id: str) -> Dict[str, Any]:
+    async def delete_page(
+        ctx: Context,
+        page_id: str,
+    ) -> Dict[str, Any]:
         """
-        Delete a Confluence page
+        Delete a Confluence page.
 
         Args:
             page_id: ID of the page to delete
@@ -161,31 +146,29 @@ class PageTools:
         client = ctx.request_context.lifespan_context.confluence
 
         try:
-            success = await client.delete_page(page_id=page_id)
-
-            if success:
-                return {
-                    "status": "success",
-                    "message": f"Page {page_id} was deleted successfully",
-                }
-            else:
-                return {
-                    "status": "error",
-                    "message": f"Failed to delete page {page_id}",
-                }
+            result = await client.delete_page(page_id=page_id)
+            return {
+                "status": "success",
+                "page_id": result["page_id"]
+            }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
     async def get_page_children(
-        ctx: Context, page_id: str, limit: int = 25
+        ctx: Context,
+        page_id: str,
+        limit: int = 25,
     ) -> Dict[str, Any]:
         """
-        Get child pages of a Confluence page
+        Get child pages of a Confluence page.
 
         Args:
             page_id: ID of the parent page
-            limit: Maximum number of children to return (default: 25)
+            limit: Maximum number of children to return
 
         Returns:
             Dictionary with child pages information
@@ -193,32 +176,25 @@ class PageTools:
         client = ctx.request_context.lifespan_context.confluence
 
         try:
-            children = await client.get_page_children(page_id=page_id, limit=limit)
-
-            formatted_children = []
-            for child in children:
-                formatted_children.append(
-                    {
-                        "id": child.id,
-                        "title": child.title,
-                        "type": child.type.value,
-                        "space_key": child.space.key,
-                    }
-                )
-
+            pages = await client.get_page_children(page_id=page_id, limit=limit)
             return {
                 "status": "success",
-                "children": formatted_children,
-                "count": len(formatted_children),
-                "parent_id": page_id,
+                "children": [page.__dict__ for page in pages],
+                "count": len(pages),
             }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
-    async def get_page_ancestors(ctx: Context, page_id: str) -> Dict[str, Any]:
+    async def get_page_ancestors(
+        ctx: Context,
+        page_id: str,
+    ) -> Dict[str, Any]:
         """
-        Get ancestor (parent) pages of a Confluence page
+        Get ancestor (parent) pages of a Confluence page.
 
         Args:
             page_id: ID of the page
@@ -229,23 +205,14 @@ class PageTools:
         client = ctx.request_context.lifespan_context.confluence
 
         try:
-            ancestors = await client.get_page_ancestors(page_id=page_id)
-
-            formatted_ancestors = []
-            for ancestor in ancestors:
-                formatted_ancestors.append(
-                    {
-                        "id": ancestor.id,
-                        "title": ancestor.title,
-                        "type": ancestor.type.value,
-                        "space_key": ancestor.space.key,
-                    }
-                )
-
+            pages = await client.get_page_ancestors(page_id=page_id)
             return {
                 "status": "success",
-                "ancestors": formatted_ancestors,
-                "count": len(formatted_ancestors),
+                "ancestors": [page.__dict__ for page in pages],
+                "count": len(pages),
             }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }

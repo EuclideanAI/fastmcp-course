@@ -1,15 +1,21 @@
+"""Tools for comment operations in Confluence."""
+
 from typing import Any, Dict
 
 from fastmcp import Context
 
 
-class CommendTools:
+class CommentTools:
+    """Tools for managing comments on Confluence pages."""
+
     @staticmethod
     async def get_comments(
-        ctx: Context, page_id: str, depth: str = "all"
+        ctx: Context,
+        page_id: str,
+        depth: str = "all",
     ) -> Dict[str, Any]:
         """
-        Get comments for a Confluence page
+        Get comments for a Confluence page.
 
         Args:
             page_id: ID of the page
@@ -22,38 +28,25 @@ class CommendTools:
 
         try:
             comments = await client.get_comments(page_id=page_id, depth=depth)
-
-            formatted_comments = []
-            for comment in comments:
-                formatted_comments.append(
-                    {
-                        "id": comment.id,
-                        "title": comment.title,
-                        "creator": {
-                            "id": comment.creator.id,
-                            "display_name": comment.creator.display_name,
-                        },
-                        "created": comment.created.isoformat(),
-                        "updated": comment.updated.isoformat(),
-                        "content": comment.body.get("view", {}).get("value", "")
-                        if comment.body
-                        else "",
-                        "container_id": comment.container_id,
-                    }
-                )
-
             return {
                 "status": "success",
-                "comments": formatted_comments,
-                "count": len(formatted_comments),
+                "comments": [comment.__dict__ for comment in comments],
+                "count": len(comments),
             }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
-    async def add_comment(ctx: Context, page_id: str, content: str) -> Dict[str, Any]:
+    async def add_comment(
+        ctx: Context,
+        page_id: str,
+        content: str,
+    ) -> Dict[str, Any]:
         """
-        Add a comment to a Confluence page
+        Add a comment to a Confluence page.
 
         Args:
             page_id: ID of the page to comment on
@@ -65,28 +58,24 @@ class CommendTools:
         client = ctx.request_context.lifespan_context.confluence
 
         try:
-            comment = await client.add_comment(page_id=page_id, comment_text=content)
-
+            comment = await client.add_comment(page_id=page_id, content=content)
             return {
                 "status": "success",
-                "comment": {
-                    "id": comment.id,
-                    "title": comment.title,
-                    "creator": {
-                        "id": comment.creator.id,
-                        "display_name": comment.creator.display_name,
-                    },
-                    "created": comment.created.isoformat(),
-                    "container_id": comment.container_id,
-                },
+                "comment": comment.__dict__,
             }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
-    async def get_labels(ctx: Context, page_id: str) -> Dict[str, Any]:
+    async def get_labels(
+        ctx: Context,
+        page_id: str,
+    ) -> Dict[str, Any]:
         """
-        Get labels for a Confluence page
+        Get labels for a Confluence page.
 
         Args:
             page_id: ID of the page
@@ -98,15 +87,25 @@ class CommendTools:
 
         try:
             labels = await client.get_labels(page_id=page_id)
-
-            return {"status": "success", "labels": labels, "count": len(labels)}
+            return {
+                "status": "success",
+                "labels": [label.__dict__ for label in labels],
+                "count": len(labels),
+            }
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }
 
     @staticmethod
-    async def add_label(ctx: Context, page_id: str, label: str) -> Dict[str, Any]:
+    async def add_label(
+        ctx: Context,
+        page_id: str,
+        label: str,
+    ) -> Dict[str, Any]:
         """
-        Add a label to a Confluence page
+        Add a label to a Confluence page.
 
         Args:
             page_id: ID of the page
@@ -119,14 +118,9 @@ class CommendTools:
 
         try:
             result = await client.add_label(page_id=page_id, label=label)
-
-            return {
-                "status": "success",
-                "label": {
-                    "id": result.get("id", ""),
-                    "name": result.get("name", label),
-                    "prefix": result.get("prefix", "global"),
-                },
-            }
+            return result
         except Exception as e:
-            return {"status": "error", "message": str(e)}
+            return {
+                "status": "error",
+                "message": str(e),
+            }

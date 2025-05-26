@@ -9,6 +9,9 @@ confluence_fastmcp.egg-info/SOURCES.txt
 confluence_fastmcp.egg-info/dependency_links.txt
 confluence_fastmcp.egg-info/requires.txt
 confluence_fastmcp.egg-info/top_level.txt
+tests/conftest.py
+tests/test_client.py
+tests/test_tools.py
 tools/__init__.py
 tools/comment_tools.py
 tools/page_tools.py

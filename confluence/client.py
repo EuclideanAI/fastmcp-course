@@ -1,526 +1,497 @@
+"""Confluence client implementation."""
+
+import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
 import backoff
-import httpx
 from atlassian import Confluence
+from httpx import HTTPError
 
-from config import ConfluenceConfig
-from confluence.models import Comment, Page, SearchResult
-from confluence.utils import build_content_payload, format_cql_query
+from confluence.models import Comment, Label, Page, SearchResult, Space
+from confluence.utils import parse_confluence_response
 
-# Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-file_handler = logging.FileHandler("confluence_client.log")
-formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 
 class ConfluenceClient:
-    """
-    Client for interacting with the Confluence API.
+    """Client for interacting with Atlassian Confluence."""
 
-    This client provides a high-level interface to the Confluence REST API,
-    using the atlassian-python-api library for the actual communication.
-    """
-
-    def __init__(self, config: Optional[ConfluenceConfig] = None):
+    def __init__(self, url: str, username: str, api_token: str):
         """
         Initialize the Confluence client.
 
         Args:
-            config (ConfluenceConfig, optional): Configuration for the client.
-                If not provided, will try to load from environment variables.
+            url: Base URL for Confluence instance
+            username: Username for authentication
+            api_token: API token for authentication
         """
-        if config is None:
-            from config import get_confluence_config
+        self.url = url
+        self.username = username
+        self.api_token = api_token
 
-            config = get_confluence_config()
+        # Initialize the Atlassian Python API client
+        self.client = Confluence(
+            url=url,
+            username=username,
+            password=api_token,
+            cloud=True,  # Assuming cloud instance; set to False if on-prem
+        )
 
-        self.config = config
-        self._client = self._initialize_client()
-        logger.info(f"Initialized Confluence client for URL: {config.url}")
+        logger.info("Initialized Confluence client for %s", url)
 
-    def _initialize_client(self) -> Confluence:
-        """
-        Initialize the underlying Confluence client.
-
-        Returns:
-            Confluence: An initialized Confluence client from atlassian-python-api
-
-        Raises:
-            ValueError: If the configuration is invalid or authentication fails
-        """
-        try:
-            # if self.config.personal_access_token:
-            #     return Confluence(
-            #         url=self.config.url,
-            #         username=self.config.personal_access_token,
-            #         password=self.config.personal_access_token,
-            #     )
-            # else:
-            #     return Confluence(
-            #         url=self.config.url,
-            #         username=self.config.username,
-            #         password=self.config.personal_access_token
-            #     )
-            return Confluence(
-                url=self.config.url,
-                username=self.config.username,
-                password=self.config.personal_access_token,
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize Confluence client: {str(e)}")
-            raise ValueError(f"Failed to initialize Confluence client: {str(e)}") from e
+    async def disconnect(self) -> None:
+        """Clean up resources when shutting down."""
+        # The Atlassian Python API client doesn't have a specific disconnect method
+        # but we include this for future-proofing and consistency
+        logger.info("Disconnecting from Confluence")
 
     @backoff.on_exception(
         backoff.expo,
-        (httpx.HTTPError, ConnectionError),
+        (HTTPError, ConnectionError),
         max_tries=3,
-        on_backoff=lambda details: logger.warning(
-            f"API request failed. Retrying in {details.get('wait', 0):.1f} seconds..."
-        ),
+        max_time=30,
     )
-    async def search(
-        self,
-        cql_or_text: str,
-        spaces: Optional[List[str]] = None,
-        content_type: Optional[str] = None,
-        limit: int = 10,
-        start: int = 0,
-        expand: Optional[List[str]] = None,
-    ) -> SearchResult:
+    async def get_page(self, page_id: str, include_body: bool = True) -> Page:
         """
-        Search Confluence content using CQL or text search.
+        Get Confluence page content and metadata by ID.
 
         Args:
-            cql_or_text (str): CQL query or text search
-            spaces (list, optional): Space keys to restrict the search to
-            content_type (str, optional): Content type to filter by (page, blogpost, etc.)
-            limit (int): Maximum number of results to return
-            start (int): Starting index for pagination
-            expand (list, optional): Fields to expand in the response
+            page_id: The ID of the Confluence page
+            include_body: Whether to include the full page content
 
         Returns:
-            SearchResult: Object containing search results
+            Page object with page information
         """
-        # Format the query with space restrictions if needed
-        query = format_cql_query(cql_or_text, spaces)
+        # Run in executor since Atlassian API is synchronous
+        expand = "body.storage,version,space" if include_body else "version,space"
 
-        # Add content type restriction if specified
-        if content_type:
-            query = f"({query}) AND type={content_type}"
-
-        # Format the expand parameter
-        expand_str = ",".join(expand) if expand else "body.view,space,version,creator"
-
-        try:
-            logger.info(f"Searching with CQL: {query}")
-            response = self._client.cql(
-                cql=query, limit=limit, start=start, expand=expand_str
-            )
-
-            if not response:
-                raise ValueError("Search returned empty response")
-
-            logger.debug(f"Search returned {len(response.get('results', []))} results")
-            return SearchResult.from_api_response(response)
-
-        except Exception as e:
-            logger.error(f"Failed to search Confluence: {str(e)}")
-            raise
-
-    async def get_page(self, page_id: str, expand: Optional[List[str]] = None) -> Page:
-        """
-        Get a page by ID.
-
-        Args:
-            page_id (str): The ID of the page to retrieve
-            expand (list, optional): Fields to expand in the response
-
-        Returns:
-            Page: The requested page
-
-        Raises:
-            ValueError: If the page could not be found
-        """
-        expand_str = (
-            ",".join(expand)
-            if expand
-            else "body.view,body.storage,space,version,ancestors,children.page,creator"
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, lambda: self.client.get_page_by_id(page_id=page_id, expand=expand)
         )
 
-        try:
-            logger.info(f"Fetching page with ID: {page_id}")
-            response = self._client.get_page_by_id(page_id=page_id, expand=expand_str)
-            logger.info(f"Response for page {page_id}: {response}")
-            if response is None:
-                raise ValueError(f"Page with ID {page_id} not found")
-            else:
-                return Page.from_api_response(response)
+        # Log more safely with specific fields rather than the entire response
+        logger.info(
+            f"Confluence get_page response for page_id {page_id}: status={'success' if response else 'failure'}"
+        )
+        if response:
+            try:
+                # Log a few key fields for debugging, not the entire response
+                logger.info(
+                    f"Page title: {response.get('title', 'N/A')}, ID: {response.get('id', 'N/A')}"
+                )
+            except Exception as e:
+                logger.error(f"Error while logging response: {str(e)}")
 
-        except Exception as e:
-            logger.error(f"Failed to get page {page_id}: {str(e)}")
-            raise
+        if response is None:
+            raise ValueError(f"Page with id {page_id} not found or response is None")
+        return parse_confluence_response(response, Page)
 
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
     async def create_page(
         self,
-        title: str,
-        body: str,
         space_key: str,
-        parent_id: Optional[str] = None,
-        representation: str = "storage",
+        title: str,
+        content: str,
+        parent_id: Optional[int] = None,
+        content_format: str = "storage",
     ) -> Page:
         """
-        Create a new page in Confluence.
+        Create a new Confluence page.
 
         Args:
-            title (str): The title of the page
-            body (str): The content of the page
-            space_key (str): The key of the space to create the page in
-            parent_id (str, optional): The ID of the parent page
-            representation (str): The format of the content (storage, wiki, etc.)
+            space_key: Key of the space where the page will be created
+            title: Title of the page
+            content: Content of the page
+            parent_id: Optional ID of the parent page for hierarchical content
+            content_format: Content format ('storage' for XHTML, 'wiki' for wiki markup)
 
         Returns:
-            Page: The created page
+            Page object with created page information
         """
-        build_content_payload(
-            title=title,
-            body=body,
-            space_key=space_key,
-            parent_id=parent_id,
-            representation=representation,
-        )
-
-        try:
-            logger.info(f"Creating page '{title}' in space {space_key}")
-            response = self._client.create_page(
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.create_page(
                 space=space_key,
                 title=title,
-                body=body,
+                body=content,
                 parent_id=parent_id,
-                representation=representation,
+                type="page",
+                representation=content_format,
+            ),
+        )
+
+        if response is None:
+            raise ValueError(
+                f"Failed to create page '{title}' in space '{space_key}' or response is None"
             )
-            logger.info(f"Response for page creation: {response}")
+        return parse_confluence_response(response, Page)
 
-            if response is None:
-                raise ValueError("Create page returned empty response")
-
-            return Page.from_api_response(response)
-
-        except Exception as e:
-            logger.error(f"Failed to create page '{title}': {str(e)}")
-            raise
-
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
     async def update_page(
         self,
         page_id: str,
         title: str,
-        body: str,
+        content: str,
         minor_edit: bool = False,
-        representation: str = "storage",
+        content_format: str = "storage",
         version_comment: Optional[str] = None,
     ) -> Page:
         """
-        Update an existing page in Confluence.
+        Update an existing Confluence page.
 
         Args:
-            page_id (str): The ID of the page to update
-            title (str): The new title of the page
-            body (str): The new content of the page
-            minor_edit (bool): Whether this is a minor edit
-            representation (str): The format of the content (storage, wiki, etc.)
-            version_comment (str, optional): Comment for this version
+            page_id: ID of the page to update
+            title: New title of the page
+            content: New content of the page
+            minor_edit: Whether this is a minor edit
+            content_format: Content format ('storage' for XHTML, 'wiki' for wiki markup)
+            version_comment: Optional comment for this version
 
         Returns:
-            Page: The updated page
+            Page object with updated page information
         """
-        try:
-            # First, get the current page to determine its version
-            current_page = await self.get_page(page_id)
-            current_version = current_page.version.get("number", 1)
+        # Get page info for version if needed in the future
+        # The commented-out code shows we might need the version later
+        # current_page = await self.get_page(page_id, include_body=False)
 
-            logger.info(f"Updating page {page_id} from version {current_version}")
-            response = self._client.update_page(
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.update_page(
                 page_id=page_id,
                 title=title,
-                body=body,
+                body=content,
+                type="page",
+                representation=content_format,
+                # version=current_page.version + 1,
                 minor_edit=minor_edit,
                 version_comment=version_comment,
-                representation=representation,
+            ),
+        )
+        # Log the response status for debugging
+        logger.info(
+            f"Confluence update_page response for page_id {page_id}: status={'success' if response else 'failure'}"
+        )
+
+        if response is None:
+            raise ValueError(
+                f"Failed to update page with id {page_id} or response is None"
             )
+        return parse_confluence_response(response, Page)
 
-            if response is None:
-                raise ValueError("Update page returned empty response")
-
-            return Page.from_api_response(response)
-
-        except Exception as e:
-            logger.error(f"Failed to update page {page_id}: {str(e)}")
-            raise
-
-    async def delete_page(self, page_id: str) -> bool:
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def delete_page(self, page_id: str) -> Dict[str, Any]:
         """
-        Delete a page from Confluence.
+        Delete a Confluence page.
 
         Args:
-            page_id (str): The ID of the page to delete
+            page_id: ID of the page to delete
 
         Returns:
-            bool: True if the page was deleted successfully
+            Dictionary with operation result
         """
-        try:
-            logger.info(f"Deleting page {page_id}")
-            self._client.remove_page(page_id=page_id)
-            return True
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, lambda: self.client.remove_page(page_id=page_id)
+        )
 
-        except Exception as e:
-            logger.error(f"Failed to delete page {page_id}: {str(e)}")
-            raise
+        # This typically returns a boolean or None
+        return {"status": "success" if response else "error", "page_id": page_id}
 
-    async def get_page_children(
-        self, page_id: str, expand: Optional[List[str]] = None, limit: int = 25
-    ) -> List[Page]:
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def get_page_children(self, page_id: str, limit: int = 25) -> List[Page]:
         """
-        Get the child pages of a specific page.
+        Get child pages of a Confluence page.
 
         Args:
-            page_id (str): The ID of the parent page
-            expand (list, optional): Fields to expand in the response
-            limit (int): Maximum number of children to return
+            page_id: ID of the parent page
+            limit: Maximum number of children to return
 
         Returns:
-            list: List of child pages
+            List of Page objects for child pages
         """
-        expand_str = ",".join(expand) if expand else "version"
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.get_page_child_by_type(
+                page_id=page_id, type="page", limit=limit
+            ),
+        )
 
-        try:
-            logger.info(f"Fetching children of page {page_id}")
-            response = self._client.get_page_child_by_type(
-                page_id=page_id, type="page", start=0, limit=limit, expand=expand_str
+        if response is None:
+            raise ValueError(
+                f"Failed to get child pages for page with id {page_id} or response is None"
             )
+        return [parse_confluence_response(child, Page) for child in response]
 
-            children = []
-            # Ensure response is a dict and not None or a generator
-            if response and isinstance(response, dict):
-                for child in response.get("results", []):
-                    children.append(Page.from_api_response(child))
-            else:
-                logger.error(
-                    f"Unexpected response type for get_page_child_by_type: {type(response)}"
-                )
-                raise ValueError("Failed to fetch children: Unexpected response type")
-
-            return children
-
-        except Exception as e:
-            logger.error(f"Failed to get children of page {page_id}: {str(e)}")
-            raise
-
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
     async def get_page_ancestors(self, page_id: str) -> List[Page]:
         """
-        Get the ancestors (parent pages) of a specific page.
+        Get ancestor (parent) pages of a Confluence page.
 
         Args:
-            page_id (str): The ID of the page
+            page_id: ID of the page
 
         Returns:
-            list: List of ancestor pages
+            List of Page objects for ancestor pages
         """
-        try:
-            # Get the page with ancestors expanded
-            await self.get_page(page_id, expand=["ancestors"])
+        # Get page with ancestors expanded
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.get_page_by_id(page_id=page_id, expand="ancestors"),
+        )
 
-            # Extract and convert ancestors to Page objects
-            ancestors = []
-            ancestor_data = self._client.get_page_ancestors(page_id)
+        if response is None:
+            raise ValueError(f"Page with id {page_id} not found or response is None")
 
-            if ancestor_data and isinstance(ancestor_data, dict):
-                for ancestor in ancestor_data.get("results", []):
-                    ancestors.append(Page.from_api_response(ancestor))
-            else:
-                logger.error(
-                    f"Failed to get ancestors: Unexpected response type {type(ancestor_data)}"
-                )
-                raise ValueError("Failed to fetch ancestors: Unexpected response type")
+        # Extract and parse ancestors from the response
+        ancestors = response.get("ancestors", [])
+        return [parse_confluence_response(ancestor, Page) for ancestor in ancestors]
 
-            return ancestors
-
-        except Exception as e:
-            logger.error(f"Failed to get ancestors of page {page_id}: {str(e)}")
-            raise
-
-    async def get_comments(
-        self, page_id: str, depth: str = "all", expand: Optional[List[str]] = None
-    ) -> List[Comment]:
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def search(
+        self,
+        query: str,
+        spaces: Optional[List[str]] = None,
+        content_type: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[SearchResult]:
         """
-        Get comments for a specific page.
+        Search Confluence content using CQL or text search.
 
         Args:
-            page_id (str): The ID of the page
-            depth (str): Comment depth to retrieve ('all', 'root', or a specific level)
-            expand (list, optional): Fields to expand in the response
+            query: Search terms or CQL query
+            spaces: Optional list of space keys to restrict search
+            content_type: Optional content type filter (e.g., "page", "blogpost")
+            limit: Maximum number of results to return
 
         Returns:
-            list: List of comments
+            List of search results
         """
-        expand_str = ",".join(expand) if expand else "body.view,version,creator"
+        # Initialize cql variable
+        cql = query
+
+        # Check if this looks like a simple text search (not CQL)
+        is_simple_text = (
+            not any(op in query.lower() for op in ["~", "=", "<", ">", "and", "or", "in", "space", "type"]) and
+            not query.strip().startswith("(")
+        )
+
+        if is_simple_text:
+            # This is a simple text search, convert to CQL
+            # Escape any quotes in the query
+            escaped_query = query.replace('"', '\\"')
+            cql = f'text ~ "{escaped_query}"'
+
+            # Add space restrictions if provided
+            if spaces:
+                space_clause = " OR ".join([f'space = "{space}"' for space in spaces])
+                cql = f"({cql}) AND ({space_clause})"
+
+            # Add content type restriction if provided
+            if content_type:
+                cql = f"({cql}) AND type = {content_type}"
+
+        # Log the CQL query for debugging
+        logger.info(f"Constructed CQL query: {cql}")
+        loop = asyncio.get_event_loop()
 
         try:
-            logger.info(f"Fetching comments for page {page_id}")
-            response = self._client.get_page_comments(
-                content_id=page_id, depth=depth, expand=expand_str
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.client.cql(cql=cql, limit=limit, expand="body.view,space"),
             )
-
-            comments = []
-            if response is not None:
-                for comment_data in response.get("results", []):
-                    comments.append(Comment.from_api_response(comment_data))
-            else:
-                logger.error(f"get_page_comments returned None for page {page_id}")
-                raise ValueError("Failed to get comments: response is None")
-
-            return comments
-
         except Exception as e:
-            logger.error(f"Failed to get comments for page {page_id}: {str(e)}")
-            raise
+            # Provide more helpful error message with the actual CQL query
+            raise ValueError(f"CQL query failed: {str(e)}. Query was: {cql}") from e
 
-    async def add_comment(self, page_id: str, comment_text: str) -> Comment:
+        # Log the CQL query for debugging
+        logger.info(f"Confluence search response: {response}")
+        if response is None:
+            raise ValueError("Search query failed or response is None")
+        results = response.get("results", [])
+        logger.info(f"Search returned {results}")
+        return [parse_confluence_response(result, SearchResult) for result in results]
+
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def get_spaces(self, limit: int = 25) -> List[Space]:
         """
-        Add a comment to a page.
+        List available Confluence spaces.
 
         Args:
-            page_id (str): The ID of the page to comment on
-            comment_text (str): The text of the comment
+            limit: Maximum number of spaces to return
 
         Returns:
-            Comment: The created comment
+            List of Space objects
         """
-        try:
-            logger.info(f"Adding comment to page {page_id}")
-            response = self._client.add_comment(page_id=page_id, text=comment_text)
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.get_all_spaces(limit=limit, expand="description.plain"),
+        )
 
-            if response is None:
-                logger.error(f"add_comment returned None for page {page_id}")
-                raise ValueError("Failed to add comment: response is None")
+        if response is None:
+            raise ValueError("Failed to get spaces or response is None")
+        spaces = response.get("results", [])
+        return [parse_confluence_response(space, Space) for space in spaces]
 
-            return Comment.from_api_response(response)
-
-        except Exception as e:
-            logger.error(f"Failed to add comment to page {page_id}: {str(e)}")
-            raise
-
-    async def get_labels(self, page_id: str) -> List[Dict[str, str]]:
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def get_comments(self, page_id: str, depth: str = "all") -> List[Comment]:
         """
-        Get labels for a specific page.
+        Get comments for a Confluence page.
 
         Args:
-            page_id (str): The ID of the page
+            page_id: ID of the page
+            depth: Comment depth ('all', 'root', or specific level)
 
         Returns:
-            list: List of labels
+            List of Comment objects
         """
-        try:
-            logger.info(f"Fetching labels for page {page_id}")
-            response = self._client.get_page_labels(page_id=page_id)
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: self.client.get_page_comments(
+                content_id=page_id, expand="body.storage", depth=depth
+            ),
+        )
 
-            labels = []
-            if response is not None:
-                for label_data in response.get("results", []):
-                    labels.append(
-                        {
-                            "id": label_data.get("id"),
-                            "name": label_data.get("name"),
-                            "prefix": label_data.get("prefix", "global"),
-                        }
-                    )
-            else:
-                logger.error(f"get_page_labels returned None for page {page_id}")
-                raise ValueError("Failed to get labels: response is None")
+        if response is None:
+            raise ValueError(
+                f"Failed to get comments for page with id {page_id} or response is None"
+            )
+        comments = response.get("results", [])
+        return [parse_confluence_response(comment, Comment) for comment in comments]
 
-            return labels
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def add_comment(self, page_id: str, content: str) -> Comment:
+        """
+        Add a comment to a Confluence page.
 
-        except Exception as e:
-            logger.error(f"Failed to get labels for page {page_id}: {str(e)}")
-            raise
+        Args:
+            page_id: ID of the page to comment on
+            content: The comment text
 
+        Returns:
+            Comment object for the created comment
+        """
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, lambda: self.client.add_comment(page_id=page_id, text=content)
+        )
+
+        if response is None:
+            raise ValueError(
+                f"Failed to add comment to page with id {page_id} or response is None"
+            )
+        return parse_confluence_response(response, Comment)
+
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
+    async def get_labels(self, page_id: str) -> List[Label]:
+        """
+        Get labels for a Confluence page.
+
+        Args:
+            page_id: ID of the page
+
+        Returns:
+            List of Label objects
+        """
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, lambda: self.client.get_page_labels(page_id=page_id)
+        )
+
+        if response is None:
+            raise ValueError(
+                f"Failed to get labels for page with id {page_id} or response is None"
+            )
+        labels = response.get("results", [])
+        return [parse_confluence_response(label, Label) for label in labels]
+
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPError, ConnectionError),
+        max_tries=3,
+        max_time=30,
+    )
     async def add_label(self, page_id: str, label: str) -> Dict[str, Any]:
         """
-        Add a label to a page.
+        Add a label to a Confluence page.
 
         Args:
-            page_id (str): The ID of the page
-            label (str): The label to add
+            page_id: ID of the page
+            label: Label to add
 
         Returns:
-            dict: The created label
+            Dictionary with operation result
         """
+        loop = asyncio.get_event_loop()
         try:
-            logger.info(f"Adding label '{label}' to page {page_id}")
-            response = self._client.set_page_label(page_id=page_id, label=label)
-
-            if response is None:
-                logger.error(f"set_page_label returned None for page {page_id}")
-                raise ValueError("Failed to add label: response is None")
-
-            return response
-
-        except Exception as e:
-            logger.error(f"Failed to add label '{label}' to page {page_id}: {str(e)}")
-            raise
-
-    async def get_spaces(self, limit: int = 25, start: int = 0) -> List[Dict[str, Any]]:
-        """
-        Get available Confluence spaces.
-
-        Args:
-            limit (int): Maximum number of spaces to return
-            start (int): Starting index for pagination
-
-        Returns:
-            list: List of spaces
-        """
-        try:
-            logger.info("Fetching Confluence spaces")
-            response = self._client.get_all_spaces(
-                start=start, limit=limit, expand="description.plain"
+            # The Atlassian Python API might have a different method name or signature
+            # This is corrected based on the actual API
+            await loop.run_in_executor(
+                None, lambda: self.client.set_page_label(page_id=page_id, label=label)
             )
-
-            spaces = []
-            if response is not None:
-                for space_data in response.get("results", []):
-                    spaces.append(
-                        {
-                            "id": space_data.get("id"),
-                            "key": space_data.get("key"),
-                            "name": space_data.get("name"),
-                            "type": space_data.get("type"),
-                            "description": space_data.get("description", {})
-                            .get("plain", {})
-                            .get("value", ""),
-                        }
-                    )
-            else:
-                logger.error("get_all_spaces returned None")
-                raise ValueError("Failed to get spaces: response is None")
-
-            return spaces
-
+            return {"status": "success", "label": label, "page_id": page_id}
         except Exception as e:
-            logger.error(f"Failed to get Confluence spaces: {str(e)}")
-            raise
-
-    async def disconnect(self) -> None:
-        """
-        Disconnect and cleanup resources.
-
-        This method should be called when the client is no longer needed
-        to free up resources and close connections properly.
-        """
-        # The atlassian-python-api client doesn't have an explicit disconnect method,
-        # but we'll add this as a placeholder for future extensions or cleanup.
-        # In a real-world implementation, you might need to clean up connection pools, etc.
-        logger.info("Disconnecting Confluence client")
+            logger.error("Failed to add label: %s", str(e))
+            return {
+                "status": "error",
+                "message": str(e),
+                "label": label,
+                "page_id": page_id,
+            }

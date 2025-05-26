@@ -115,7 +115,7 @@ Configure the application via environment variables (create `.env` file):
 ```
 CONFLUENCE_URL="https://your-domain.atlassian.net"
 CONFLUENCE_USERNAME="your-email@example.com"
-CONFLUENCE_API_TOKEN="your-api-token"
+CONFLUENCE_PAT="your-api-token"
 ```
 
 ## Usage
@@ -132,6 +132,47 @@ Run the FastMCP server as a normal mcp server in local:
 uv run server.py
 ```
 
+## Running Tests
+
+This project includes comprehensive tests for the Confluence client and MCP tools. To run the tests:
+
+```bash
+uv run pytest
+```
+
+For more verbose output:
+
+```bash
+uv run pytest -v
+```
+
+To run specific test files:
+
+```bash
+uv run pytest tests/test_client.py
+uv run pytest tests/test_tools.py
+```
+
+## AI Integration
+
+The Confluence MCP server can be integrated with various AI assistants:
+
+### VS Code Copilot
+
+To integrate with VS Code Copilot:
+
+1. Ensure the server is running locally with `uv run server.py`
+2. Open VS Code with the Copilot extension installed
+3. Connect Copilot to the local MCP server
+
+### Claude Desktop
+
+To integrate with Claude Desktop:
+
+1. Ensure the server is running locally with `uv run server.py`
+2. Open Claude Desktop
+3. In settings, add the local MCP server URL (typically `http://localhost:8000`)
+
 ## Project Structure
 
 ```
@@ -147,7 +188,12 @@ fastmcp-course/
 │   ├── page_tools.py      # Tools for page operations
 │   ├── search_tools.py    # Tools for search operations
 │   └── comment_tools.py   # Tools for comment operations
+├── tests/
+│   ├── conftest.py        # Test configurations and fixtures
+│   ├── test_client.py     # Tests for client functionality
+│   └── test_tools.py      # Tests for MCP tools
 ├── config.py              # Configuration management
+├── .env.example           # Example environment variables
 └── README.md              # Project documentation
 ```
 

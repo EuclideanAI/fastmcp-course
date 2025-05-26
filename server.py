@@ -1,26 +1,28 @@
+"""Main FastMCP server entry point for Confluence integration."""
+
 import logging
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from typing import AsyncIterator
 
 from fastmcp import FastMCP
 
-from confluence.client import ConfluenceClient
-from tools.comment_tools import CommendTools
-from tools.page_tools import PageTools
-from tools.search_tools import SearchTools
+from config import load_config
+from confluence import ConfluenceClient
+from tools import CommentTools, PageTools, SearchTools
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="confluence_client.log",
 )
 logger = logging.getLogger(__name__)
 
 
-# Application context containing shared resources
 @dataclass
 class AppContext:
-    """Application context with dependencies."""
+    """Application context for the lifespan."""
 
     confluence: ConfluenceClient
 
@@ -30,51 +32,62 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """
     Manage application lifecycle with type-safe context.
 
-    This function is called when the server starts and stops,
-    handling the initialization and cleanup of resources.
-
     Args:
         server: The FastMCP server instance
 
     Yields:
-        AppContext: The application context with initialized dependencies
+        AppContext: The application context
     """
-    logger.info("Starting Confluence FastMCP server")
-
-    # Initialize Confluence client
+    # Load configuration from environment variables
     try:
-        confluence = ConfluenceClient()
-        logger.info("Confluence client initialized successfully")
+        config = load_config()
+        logger.info("Configuration loaded successfully")
 
-        # Yield the app context with initialized resources
+        # Initialize confluence api client
+        confluence = ConfluenceClient(
+            url=config.confluence.url,
+            username=config.confluence.username,
+            api_token=config.confluence.api_token,
+        )
+
+        logger.info("Confluence client initialized")
         yield AppContext(confluence=confluence)
     finally:
-        # Cleanup resources when the server shuts down
-        logger.info("Shutting down Confluence FastMCP server")
-        # await confluence.disconnect()
+        # Cleanup on shutdown
+        logger.info("Shutting down Confluence MCP server")
 
 
-# Create the FastMCP server with lifespan management
-mcp = FastMCP(name="ConfluenceServer", lifespan=app_lifespan)
+# Create a named server
+mcp = FastMCP("Confluence MCP Server", lifespan=app_lifespan)
 
-# Register comment tools
-mcp.add_tool(CommendTools.add_comment)
-mcp.add_tool(CommendTools.add_label)
-mcp.add_tool(CommendTools.get_labels)
-mcp.add_tool(CommendTools.get_comments)
 
-# Register page tools
-mcp.add_tool(PageTools.get_page)
-mcp.add_tool(PageTools.create_page)
-mcp.add_tool(PageTools.update_page)
-mcp.add_tool(PageTools.delete_page)
-mcp.add_tool(PageTools.get_page_children)
-mcp.add_tool(PageTools.get_page_ancestors)
+# Register tools
+def register_tools() -> None:
+    """Register all tools with the MCP server."""
+    # Page tools
+    mcp.add_tool(PageTools.get_page)
+    mcp.add_tool(PageTools.create_page)
+    mcp.add_tool(PageTools.update_page)
+    mcp.add_tool(PageTools.delete_page)
+    mcp.add_tool(PageTools.get_page_children)
+    mcp.add_tool(PageTools.get_page_ancestors)
 
-# Register search tools
-mcp.add_tool(SearchTools.search_confluence)
-mcp.add_tool(SearchTools.get_spaces)
+    # Search tools
+    mcp.add_tool(SearchTools.search_confluence)
+    mcp.add_tool(SearchTools.get_spaces)
+
+    # Comment and label tools
+    mcp.add_tool(CommentTools.get_comments)
+    mcp.add_tool(CommentTools.add_comment)
+    mcp.add_tool(CommentTools.get_labels)
+    mcp.add_tool(CommentTools.add_label)
+
+    logger.info("All tools registered successfully")
+
+
+register_tools()
+
 
 if __name__ == "__main__":
-    # Start the server
+    logger.info("Starting Confluence MCP server")
     mcp.run()

@@ -1,136 +1,187 @@
-import re
+"""Utility functions for Confluence client."""
+
+import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Type, TypeVar, Union, cast
+
+from confluence.models import Comment, Label, Page, SearchResult, Space
+
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T", Page, Comment, Space, SearchResult, Label)
 
 
-def convert_to_datetime(date_string: str) -> datetime:
+def parse_datetime(date_str: Union[str, None]) -> Union[datetime, None]:
     """
-    Convert an ISO-formatted date string to a datetime object.
+    Parse datetime string from Confluence API.
 
     Args:
-        date_string (str): ISO-formatted date string from the Confluence API
+        date_str: Date string in ISO format
 
     Returns:
-        datetime: The parsed datetime object
+        Parsed datetime object or None
     """
-    # Handle Confluence API date formats - they often end with Z for UTC
-    if date_string.endswith("Z"):
-        date_string = date_string[:-1] + "+00:00"
-    return datetime.fromisoformat(date_string)
+    if not date_str:
+        return None
+
+    try:
+        return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    except (ValueError, TypeError) as e:
+        logger.warning("Failed to parse datetime: %s - %s", date_str, e)
+        return None
 
 
-def format_cql_query(query: str, spaces: Optional[List[str]] = None) -> str:
+def parse_confluence_response(response: Dict[Any, Any], model_type: Type[T]) -> T:
     """
-    Format a Confluence Query Language (CQL) query with optional space restrictions.
+    Parse raw Confluence API response into appropriate model.
 
     Args:
-        query (str): The base query string
-        spaces (list, optional): List of space keys to restrict the search to
+        response: Raw API response dictionary
+        model_type: Target model class
 
     Returns:
-        str: The formatted CQL query
+        Instantiated model object
     """
-    # If query already looks like CQL (contains boolean operators, etc.), use it directly
-    if re.search(r"\b(AND|OR|NOT)\b", query, re.IGNORECASE) or "=" in query:
-        base_query = query
+    if model_type == Page:
+        return cast(T, parse_page_response(response))
+    elif model_type == Comment:
+        return cast(T, parse_comment_response(response))
+    elif model_type == Space:
+        return cast(T, parse_space_response(response))
+    elif model_type == SearchResult:
+        return cast(T, parse_search_result_response(response))
+    elif model_type == Label:
+        return cast(T, parse_label_response(response))
     else:
-        # Otherwise, treat it as a text search
-        base_query = f'text ~ "{query}"'
-
-    # Add space restrictions if provided
-    if spaces and len(spaces) > 0:
-        spaces_clause = " OR ".join([f'space = "{space}"' for space in spaces])
-        return f"({base_query}) AND ({spaces_clause})"
-
-    return base_query
+        raise ValueError(f"Unsupported model type: {model_type}")
 
 
-def extract_content_body(
-    content: Dict[str, Any], format_type: str = "view"
-) -> Optional[str]:
+def parse_page_response(response: Dict[Any, Any]) -> Page:
     """
-    Extract content body in the specified format from a Confluence content object.
+    Parse Confluence page response.
 
     Args:
-        content (dict): Content object from Confluence API
-        format_type (str): The desired content format ('view', 'storage', etc.)
+        response: Raw API response for a page
 
     Returns:
-        str or None: The content body in the specified format, or None if not available
+        Page object
     """
-    body = content.get("body", {})
+    content = None
+    if "body" in response and "storage" in response["body"]:
+        content = response["body"]["storage"].get("value")
 
-    if not body:
-        return None
+    space_key = response.get("space", {}).get("key", "")
 
-    desired_format = body.get(format_type, {})
-    if not desired_format:
-        return None
+    return Page(
+        id=str(response.get("id", "")),
+        title=response.get("title", ""),
+        space_key=space_key,
+        version=int(response.get("version", {}).get("number", 0)),
+        content=content,
+        created=parse_datetime(response.get("created")),
+        updated=parse_datetime(response.get("lastUpdated")),
+        creator=response.get("history", {}).get("createdBy", {}),
+        url=response.get("_links", {}).get("webui", ""),
+    )
 
-    return desired_format.get("value", None)
 
-
-def parse_markdown_to_storage(markdown_content: str) -> str:
+def parse_comment_response(response: Dict[Any, Any]) -> Comment:
     """
-    Convert markdown content to Confluence storage format (XHTML).
-
-    This is a basic implementation and should be extended with a proper
-    markdown-to-html converter like markdown2 or mistune.
+    Parse Confluence comment response.
 
     Args:
-        markdown_content (str): Markdown content
+        response: Raw API response for a comment
 
     Returns:
-        str: Content in Confluence storage format (XHTML)
+        Comment object
     """
-    # In a real implementation, replace this with:
-    # html_content = markdown_converter.convert(markdown_content)
-    html_content = f"<p>{markdown_content}</p>"
+    content = ""
+    if "body" in response and "storage" in response["body"]:
+        content = response["body"]["storage"].get("value", "")
 
-    return f"""
-    <ac:structured-macro ac:name="html">
-        <ac:plain-text-body><![CDATA[{html_content}]]></ac:plain-text-body>
-    </ac:structured-macro>
+    return Comment(
+        id=str(response.get("id", "")),
+        page_id=str(response.get("container", {}).get("id", "")),
+        content=content,
+        created=parse_datetime(response.get("created")),
+        updated=parse_datetime(response.get("lastUpdated")),
+        author=response.get("author", {}),
+        parent_comment_id=str(response.get("parent", {}).get("id", ""))
+        if "parent" in response
+        else None,
+    )
+
+
+def parse_space_response(response: Dict[Any, Any]) -> Space:
     """
-
-
-def build_content_payload(
-    title: str,
-    body: str,
-    space_key: str,
-    content_type: str = "page",
-    parent_id: Optional[str] = None,
-    version_number: Optional[int] = None,
-    representation: str = "storage",
-) -> Dict[str, Any]:
-    """
-    Build a content payload for creating or updating Confluence content.
+    Parse Confluence space response.
 
     Args:
-        title (str): Content title
-        body (str): Content body
-        space_key (str): Space key
-        content_type (str): Content type (page, blogpost, etc.)
-        parent_id (str, optional): ID of the parent page for hierarchical content
-        version_number (int, optional): Version number for updates
-        representation (str): Body representation format (storage, wiki, etc.)
+        response: Raw API response for a space
 
     Returns:
-        dict: Confluence content payload
+        Space object
     """
-    payload = {
-        "type": content_type,
-        "title": title,
-        "space": {"key": space_key},
-        "body": {representation: {"value": body, "representation": representation}},
-    }
+    description = None
+    if "description" in response and "plain" in response["description"]:
+        description = response["description"]["plain"].get("value", "")
 
-    # Add parent reference for hierarchical content
-    if parent_id:
-        payload["ancestors"] = [{"id": parent_id}]
+    return Space(
+        id=int(response.get("id", 0)),
+        key=response.get("key", ""),
+        name=response.get("name", ""),
+        type=response.get("type", ""),
+        description=description,
+        homepage_id=str(response.get("homepage", {}).get("id", ""))
+        if "homepage" in response
+        else None,
+        status=response.get("status", ""),
+    )
 
-    # Add version info for updates
-    if version_number is not None:
-        payload["version"] = {"number": version_number}
 
-    return payload
+def parse_search_result_response(response: Dict[Any, Any]) -> SearchResult:
+    """
+    Parse Confluence search result response.
+
+    Args:
+        response: Raw API response for a search result
+
+    Returns:
+        SearchResult object
+    """
+    content = None
+    if "body" in response and "view" in response["body"]:
+        content = response["body"]["view"].get("value", "")
+
+    content_type = response.get("type", "")
+    space_key = response.get("space", {}).get("key", "")
+
+    return SearchResult(
+        id=str(response.get("id", "")),
+        title=response.get("title", ""),
+        space_key=space_key,
+        content_type=content_type,
+        excerpt=response.get("excerpt", ""),
+        url=response.get("_links", {}).get("webui", ""),
+        created=parse_datetime(response.get("created")),
+        updated=parse_datetime(response.get("lastUpdated")),
+        content=content,
+    )
+
+
+def parse_label_response(response: Dict[Any, Any]) -> Label:
+    """
+    Parse Confluence label response.
+
+    Args:
+        response: Raw API response for a label
+
+    Returns:
+        Label object
+    """
+    return Label(
+        id=str(response.get("id", "")),
+        name=response.get("name", ""),
+        prefix=response.get("prefix", ""),
+        label=response.get("label", ""),
+    )

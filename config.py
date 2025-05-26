@@ -1,52 +1,65 @@
+"""Configuration management for the Confluence MCP server."""
+
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from dotenv import load_dotenv
-
-load_dotenv()
 
 
 @dataclass
 class ConfluenceConfig:
-    """Configuration for the Confluence API client"""
+    """Configuration for Confluence API connection."""
 
     url: str
-    username: Optional[str] = None
-    personal_access_token: Optional[str] = None
-
-    @classmethod
-    def from_env(cls) -> "ConfluenceConfig":
-        """Load configuration from environment variables"""
-        url = os.environ.get("CONFLUENCE_URL")
-        username = os.environ.get("CONFLUENCE_USERNAME")
-        personal_access_token = os.environ.get("CONFLUENCE_PAT")
-
-        if not url:
-            raise ValueError("CONFLUENCE_URL environment variable is required")
-
-        # Validate we have username and PAT authentication
-        if not username:
-            raise ValueError("CONFLUENCE_USERNAME environment variable is required")
-
-        if not personal_access_token:
-            raise ValueError(
-                "CONFLUENCE_PAT (Personal Access Token) environment variable is required"
-            )
-
-        return cls(
-            url=url, username=username, personal_access_token=personal_access_token
-        )
+    username: str
+    api_token: str
 
 
-def get_confluence_config() -> ConfluenceConfig:
+@dataclass
+class Config:
+    """Global configuration for the application."""
+
+    confluence: ConfluenceConfig
+    log_level: str = "INFO"
+    debug: bool = False
+
+
+def load_config() -> Config:
     """
-    Get the Confluence configuration from environment variables.
+    Load configuration from environment variables.
 
     Returns:
-        ConfluenceConfig: The Confluence configuration.
-
-    Raises:
-        ValueError: If required configuration values are missing or invalid.
+        Config: Application configuration
     """
-    return ConfluenceConfig.from_env()
+    load_dotenv()
+
+    # Required Confluence settings
+    confluence_url = os.getenv("CONFLUENCE_URL")
+    confluence_username = os.getenv("CONFLUENCE_USERNAME")
+    confluence_api_token = os.getenv("CONFLUENCE_PAT")
+
+    # Validate required settings
+    missing = []
+    if not confluence_url:
+        missing.append("CONFLUENCE_URL")
+    if not confluence_username:
+        missing.append("CONFLUENCE_USERNAME")
+    if not confluence_api_token:
+        missing.append("CONFLUENCE_PAT")
+
+    if missing:
+        raise ValueError(
+            f"Missing required environment variables: {', '.join(missing)}"
+        )
+
+    # Optional settings
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+    debug = os.getenv("DEBUG", "false").lower() in ("true", "1", "yes", "y")
+
+    confluence_config = ConfluenceConfig(
+        url=str(confluence_url),
+        username=str(confluence_username),
+        api_token=str(confluence_api_token),
+    )
+
+    return Config(confluence=confluence_config, log_level=log_level, debug=debug)
