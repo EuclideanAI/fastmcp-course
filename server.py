@@ -1,4 +1,5 @@
 """Main FastMCP server entry point for Confluence integration."""
+
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -19,9 +20,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Create a named server
-mcp = FastMCP("Confluence MCP Server")
-
 @dataclass
 class AppContext:
     """Application context for the lifespan."""
@@ -33,10 +31,10 @@ class AppContext:
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """
     Manage application lifecycle with type-safe context.
-    
+
     Args:
         server: The FastMCP server instance
-        
+
     Yields:
         AppContext: The application context
     """
@@ -57,6 +55,10 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     finally:
         # Cleanup on shutdown
         logger.info("Shutting down Confluence MCP server")
+
+
+# Create a named server
+mcp = FastMCP("Confluence MCP Server", lifespan=app_lifespan)
 
 
 # Register tools

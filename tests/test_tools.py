@@ -14,7 +14,9 @@ async def test_get_page_tool(mock_context, mock_page):
     include_body = True
 
     # Setup mock response
-    mock_context.request_context.lifespan_context.confluence.get_page.return_value = mock_page
+    mock_context.request_context.lifespan_context.confluence.get_page.return_value = (
+        mock_page
+    )
 
     # Call the tool
     result = await PageTools.get_page(mock_context, page_id, include_body)
@@ -75,7 +77,9 @@ async def test_search_confluence_tool(mock_context, mock_search_result):
     limit = 10
 
     # Setup mock response
-    mock_context.request_context.lifespan_context.confluence.search.return_value = [mock_search_result]
+    mock_context.request_context.lifespan_context.confluence.search.return_value = [
+        mock_search_result
+    ]
 
     # Call the tool
     result = await SearchTools.search_confluence(
@@ -108,7 +112,9 @@ async def test_get_comments_tool(mock_context, mock_comment):
     depth = "all"
 
     # Setup mock response
-    mock_context.request_context.lifespan_context.confluence.get_comments.return_value = [mock_comment]
+    mock_context.request_context.lifespan_context.confluence.get_comments.return_value = [
+        mock_comment
+    ]
 
     # Call the tool
     result = await CommentTools.get_comments(mock_context, page_id, depth)
@@ -134,7 +140,9 @@ async def test_add_label_tool(mock_context):
     expected_result = {"status": "success", "label": label, "page_id": page_id}
 
     # Setup mock response
-    mock_context.request_context.lifespan_context.confluence.add_label.return_value = expected_result
+    mock_context.request_context.lifespan_context.confluence.add_label.return_value = (
+        expected_result
+    )
 
     # Call the tool
     result = await CommentTools.add_label(mock_context, page_id, label)
@@ -155,7 +163,9 @@ async def test_get_spaces_tool(mock_context, mock_space):
     limit = 25
 
     # Setup mock response
-    mock_context.request_context.lifespan_context.confluence.get_spaces.return_value = [mock_space]
+    mock_context.request_context.lifespan_context.confluence.get_spaces.return_value = [
+        mock_space
+    ]
 
     # Call the tool
     result = await SearchTools.get_spaces(mock_context, limit)

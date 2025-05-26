@@ -1,4 +1,5 @@
 """Tools for page operations in Confluence."""
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -29,10 +30,8 @@ class PageTools:
         try:
             page = await client.get_page(page_id=page_id, include_body=include_body)
             # Log the payload to a local log file
-            logging.basicConfig(filename='confluence_client.log', level=logging.INFO)
+            logging.basicConfig(filename="confluence_client.log", level=logging.INFO)
             logging.info("Payload for page_id %s: %s", page_id, page.__dict__)
-            print(page)
-
             return {
                 "status": "success",
                 "page": page.__dict__,
@@ -49,7 +48,7 @@ class PageTools:
         title: str,
         content: str,
         space_key: str,
-        parent_id: Optional[str] = None,
+        parent_id: Optional[int] = None,
         content_format: str = "storage",
     ) -> Dict[str, Any]:
         """
@@ -73,7 +72,7 @@ class PageTools:
                 title=title,
                 content=content,
                 parent_id=parent_id,
-                content_format=content_format
+                content_format=content_format,
             )
             return {
                 "status": "success",
@@ -118,7 +117,7 @@ class PageTools:
                 content=content,
                 minor_edit=minor_edit,
                 content_format=content_format,
-                version_comment=version_comment
+                version_comment=version_comment,
             )
             return {
                 "status": "success",
@@ -148,7 +147,10 @@ class PageTools:
 
         try:
             result = await client.delete_page(page_id=page_id)
-            return result
+            return {
+                "status": "success",
+                "page_id": result["page_id"]
+            }
         except Exception as e:
             return {
                 "status": "error",

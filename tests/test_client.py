@@ -1,4 +1,5 @@
 """Tests for Confluence client functionality."""
+
 from unittest.mock import patch
 
 import pytest
@@ -15,6 +16,9 @@ async def test_client_initialization():
 
     with patch("atlassian.Confluence") as mock_confluence:
         client = ConfluenceClient(url, username, api_token)
+
+        # Check that the client was initialized
+        assert client is not None
 
         # Check that the Atlassian Confluence client was properly initialized
         mock_confluence.assert_called_once_with(

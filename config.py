@@ -1,4 +1,5 @@
 """Configuration management for the Confluence MCP server."""
+
 import os
 from dataclasses import dataclass
 
@@ -47,7 +48,9 @@ def load_config() -> Config:
         missing.append("CONFLUENCE_PAT")
 
     if missing:
-        raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
+        raise ValueError(
+            f"Missing required environment variables: {', '.join(missing)}"
+        )
 
     # Optional settings
     log_level = os.getenv("LOG_LEVEL", "INFO")

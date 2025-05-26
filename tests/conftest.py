@@ -1,4 +1,5 @@
 """Test configuration and fixtures."""
+
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 

@@ -1,4 +1,5 @@
 """Tools for search operations in Confluence."""
+
 from typing import Any, Dict, List, Optional
 
 from fastmcp import Context
@@ -31,10 +32,7 @@ class SearchTools:
 
         try:
             results = await client.search(
-                query=query,
-                spaces=spaces,
-                content_type=content_type,
-                limit=limit
+                query=query, spaces=spaces, content_type=content_type, limit=limit
             )
 
             return {

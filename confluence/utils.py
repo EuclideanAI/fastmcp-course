@@ -1,4 +1,5 @@
 """Utility functions for Confluence client."""
+
 import logging
 from datetime import datetime
 from typing import Any, Dict, Type, TypeVar, Union, cast
@@ -7,7 +8,7 @@ from confluence.models import Comment, Label, Page, SearchResult, Space
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T', Page, Comment, Space, SearchResult, Label)
+T = TypeVar("T", Page, Comment, Space, SearchResult, Label)
 
 
 def parse_datetime(date_str: Union[str, None]) -> Union[datetime, None]:
@@ -24,7 +25,7 @@ def parse_datetime(date_str: Union[str, None]) -> Union[datetime, None]:
         return None
 
     try:
-        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
     except (ValueError, TypeError) as e:
         logger.warning("Failed to parse datetime: %s - %s", date_str, e)
         return None
@@ -80,7 +81,7 @@ def parse_page_response(response: Dict[Any, Any]) -> Page:
         created=parse_datetime(response.get("created")),
         updated=parse_datetime(response.get("lastUpdated")),
         creator=response.get("history", {}).get("createdBy", {}),
-        url=response.get("_links", {}).get("webui", "")
+        url=response.get("_links", {}).get("webui", ""),
     )
 
 
@@ -106,7 +107,8 @@ def parse_comment_response(response: Dict[Any, Any]) -> Comment:
         updated=parse_datetime(response.get("lastUpdated")),
         author=response.get("author", {}),
         parent_comment_id=str(response.get("parent", {}).get("id", ""))
-                          if "parent" in response else None,
+        if "parent" in response
+        else None,
     )
 
 
@@ -131,8 +133,9 @@ def parse_space_response(response: Dict[Any, Any]) -> Space:
         type=response.get("type", ""),
         description=description,
         homepage_id=str(response.get("homepage", {}).get("id", ""))
-                     if "homepage" in response else None,
-        status=response.get("status", "")
+        if "homepage" in response
+        else None,
+        status=response.get("status", ""),
     )
 
 
@@ -180,5 +183,5 @@ def parse_label_response(response: Dict[Any, Any]) -> Label:
         id=str(response.get("id", "")),
         name=response.get("name", ""),
         prefix=response.get("prefix", ""),
-        label=response.get("label", "")
+        label=response.get("label", ""),
     )
