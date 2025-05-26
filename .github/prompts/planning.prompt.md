@@ -158,7 +158,7 @@ def query_db(ctx: Context) -> str:
 
 Here's an example of implementing a specific Confluence tool:
 
-1. Define a staticmethod in SeaerchTools class
+1. Define a staticmethod in SearchTools class
 
 ```python
 class SearchTools:
