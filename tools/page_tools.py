@@ -147,10 +147,7 @@ class PageTools:
 
         try:
             result = await client.delete_page(page_id=page_id)
-            return {
-                "status": "success",
-                "page_id": result["page_id"]
-            }
+            return {"status": "success", "page_id": result["page_id"]}
         except Exception as e:
             return {
                 "status": "error",

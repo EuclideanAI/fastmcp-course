@@ -83,18 +83,77 @@ This project uses modern Python development tools to ensure code quality and con
      uv sync
      ```
 
-3. **Lint your code with Ruff:**
+3. **Set up pre-commit hooks (recommended):**
+
+   ```bash
+   uv run pre-commit install
+   uv run pre-commit install --hook-type commit-msg
+   ```
+
+4. **Lint your code with Ruff:**
 
    ```bash
    uv run ruff check .
    ```
 
-4. **Format your code with Ruff:**
+5. **Format your code with Ruff:**
+
    ```bash
    uv run ruff format .
    ```
 
-### Code Quality Standards - System Prompt for Copilot Agent
+6. **Run pre-commit on all files:**
+
+   ```bash
+   uv run pre-commit run --all-files
+   ```
+
+### Code Quality Standards
+
+This project enforces strict code quality standards through automated tools:
+
+#### Pre-commit Hooks
+
+We use pre-commit hooks to ensure code quality before commits. The hooks include:
+
+- **Ruff**: Fast linting and code formatting
+- **MyPy**: Static type checking
+- **Standard hooks**: Trailing whitespace, end-of-file fixes, YAML/TOML validation
+- **Conventional Commits**: Enforces conventional commit message format
+
+#### Conventional Commits
+
+This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. All commit messages must follow this format:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Allowed types:**
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools
+
+**Examples:**
+
+```
+feat: add search functionality to confluence tools
+fix: resolve type annotation issues in test files
+docs: update README with conventional commit guidelines
+test: add unit tests for page operations
+```
+
+### System Prompts for Copilot Agent
 
 The system prompts saved under `.github/prompts` outline the code quality standard for copilot coding agent (it will be included as system prompt in every conversation):
 

@@ -306,10 +306,10 @@ class ConfluenceClient:
         cql = query
 
         # Check if this looks like a simple text search (not CQL)
-        is_simple_text = (
-            not any(op in query.lower() for op in ["~", "=", "<", ">", "and", "or", "in", "space", "type"]) and
-            not query.strip().startswith("(")
-        )
+        is_simple_text = not any(
+            op in query.lower()
+            for op in ["~", "=", "<", ">", "and", "or", "in", "space", "type"]
+        ) and not query.strip().startswith("(")
 
         if is_simple_text:
             # This is a simple text search, convert to CQL

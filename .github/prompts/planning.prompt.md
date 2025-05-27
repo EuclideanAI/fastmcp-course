@@ -24,6 +24,15 @@ This project is to build a Confluence MCP server using python [FastMCP](https://
      - Isort for import statement organization
      - Trailing commas on multiline collections
      - Use of double quotes for strings
+   - **Pre-commit Hooks**:
+     - Automated code quality enforcement before commits
+     - Includes Ruff linting/formatting, MyPy type checking, and standard hooks
+     - Conventional commit message validation
+   - **Commit Standards**:
+     - Follow [Conventional Commits](https://www.conventionalcommits.org/) specification
+     - Required format: `<type>[optional scope]: <description>`
+     - Allowed types: feat, fix, docs, style, refactor, perf, test, chore
+     - Examples: `feat: add search functionality`, `fix: resolve type errors`
 
 3. **Method Decoration Pattern**:
    - For FastMCP tools, follow proper method decoration patterns:

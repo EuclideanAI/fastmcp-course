@@ -1,6 +1,9 @@
 """Tests for MCP tools."""
 
+from typing import Any
+
 import pytest
+from fastmcp import Context
 
 from tools.comment_tools import CommentTools
 from tools.page_tools import PageTools
@@ -8,7 +11,7 @@ from tools.search_tools import SearchTools
 
 
 @pytest.mark.asyncio
-async def test_get_page_tool(mock_context, mock_page):
+async def test_get_page_tool(mock_context: Context, mock_page: Any) -> None:
     """Test get_page tool."""
     page_id = "12345"
     include_body = True
@@ -33,7 +36,7 @@ async def test_get_page_tool(mock_context, mock_page):
 
 
 @pytest.mark.asyncio
-async def test_create_page_tool(mock_context, mock_page):
+async def test_create_page_tool(mock_context: Context, mock_page: Any) -> None:
     """Test create_page tool."""
     space_key = "TEST"
     title = "Test Page"
@@ -69,7 +72,9 @@ async def test_create_page_tool(mock_context, mock_page):
 
 
 @pytest.mark.asyncio
-async def test_search_confluence_tool(mock_context, mock_search_result):
+async def test_search_confluence_tool(
+    mock_context: Context, mock_search_result: Any
+) -> None:
     """Test search_confluence tool."""
     query = "test"
     spaces = ["TEST"]
@@ -106,7 +111,7 @@ async def test_search_confluence_tool(mock_context, mock_search_result):
 
 
 @pytest.mark.asyncio
-async def test_get_comments_tool(mock_context, mock_comment):
+async def test_get_comments_tool(mock_context: Context, mock_comment: Any) -> None:
     """Test get_comments tool."""
     page_id = "12345"
     depth = "all"
@@ -133,7 +138,7 @@ async def test_get_comments_tool(mock_context, mock_comment):
 
 
 @pytest.mark.asyncio
-async def test_add_label_tool(mock_context):
+async def test_add_label_tool(mock_context: Context) -> None:
     """Test add_label tool."""
     page_id = "12345"
     label = "test-label"
@@ -158,7 +163,7 @@ async def test_add_label_tool(mock_context):
 
 
 @pytest.mark.asyncio
-async def test_get_spaces_tool(mock_context, mock_space):
+async def test_get_spaces_tool(mock_context: Context, mock_space: Any) -> None:
     """Test get_spaces tool."""
     limit = 25
 

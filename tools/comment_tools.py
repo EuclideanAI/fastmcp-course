@@ -118,7 +118,11 @@ class CommentTools:
 
         try:
             result = await client.add_label(page_id=page_id, label=label)
-            return result
+            # Ensure we return a Dict[str, Any]
+            if isinstance(result, dict):
+                return result
+            else:
+                return {"status": "success", "result": result}
         except Exception as e:
             return {
                 "status": "error",
