@@ -403,6 +403,6 @@ The Model Context Protocol is more than just a technical standard—it's the fou
 
 ---
 
-**FastMCP from Zero to Hero Course**  
-_Building Production-Ready AI Agents with Model Context Protocol_  
+**FastMCP from Zero to Hero Course**
+_Building Production-Ready AI Agents with Model Context Protocol_
 © 2025 - Happy Coding! 🚀

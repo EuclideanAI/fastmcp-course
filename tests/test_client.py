@@ -1,5 +1,6 @@
 """Tests for Confluence client functionality."""
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -8,7 +9,7 @@ from confluence.client import ConfluenceClient
 
 
 @pytest.mark.asyncio
-async def test_client_initialization():
+async def test_client_initialization() -> None:
     """Test Confluence client initialization."""
     url = "https://test.atlassian.net"
     username = "test@example.com"
@@ -30,7 +31,9 @@ async def test_client_initialization():
 
 
 @pytest.mark.asyncio
-async def test_get_page(mock_confluence_client, mock_page):
+async def test_get_page(
+    mock_confluence_client: ConfluenceClient, mock_page: Any
+) -> None:
     """Test getting a page from Confluence."""
     page_id = "12345"
     include_body = True
@@ -52,7 +55,9 @@ async def test_get_page(mock_confluence_client, mock_page):
 
 
 @pytest.mark.asyncio
-async def test_create_page(mock_confluence_client, mock_page):
+async def test_create_page(
+    mock_confluence_client: ConfluenceClient, mock_page: Any
+) -> None:
     """Test creating a page in Confluence."""
     space_key = "TEST"
     title = "Test Page"
@@ -86,7 +91,9 @@ async def test_create_page(mock_confluence_client, mock_page):
 
 
 @pytest.mark.asyncio
-async def test_update_page(mock_confluence_client, mock_page):
+async def test_update_page(
+    mock_confluence_client: ConfluenceClient, mock_page: Any
+) -> None:
     """Test updating a page in Confluence."""
     page_id = "12345"
     title = "Updated Test Page"
@@ -123,7 +130,9 @@ async def test_update_page(mock_confluence_client, mock_page):
 
 
 @pytest.mark.asyncio
-async def test_search(mock_confluence_client, mock_search_result):
+async def test_search(
+    mock_confluence_client: ConfluenceClient, mock_search_result: Any
+) -> None:
     """Test searching in Confluence."""
     query = "test"
     spaces = ["TEST"]

@@ -31,7 +31,7 @@ class MyClass:
     @mcp.tool()  # This won't work correctly
     def add(self, x, y):
         return x + y
-    
+
     @mcp.resource("resource://{param}")  # This won't work correctly
     def get_resource(self, param: str):
         return f"Resource data for {param}"
@@ -49,7 +49,7 @@ mcp = FastMCP()
 class MyClass:
     def add(self, x, y):
         return x + y
-    
+
     def get_resource(self, param: str):
         return f"Resource data for {param}"
 
@@ -125,7 +125,7 @@ class MyClass:
     @mcp.tool()  # This works!
     def utility(x, y):
         return x + y
-    
+
     @staticmethod
     @mcp.resource("resource://data")  # This works too!
     def get_data():
@@ -171,10 +171,10 @@ class ComponentProvider:
         # Register methods
         mcp_instance.add_tool(self.tool_method)
         mcp_instance.add_resource_fn(self.resource_method, uri="resource://data")
-    
+
     def tool_method(self, x):
         return x * 2
-    
+
     def resource_method(self):
         return "Resource data"
 
