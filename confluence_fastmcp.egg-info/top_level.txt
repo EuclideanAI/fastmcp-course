@@ -1,3 +1,0 @@
-confluence
-tests
-tools
