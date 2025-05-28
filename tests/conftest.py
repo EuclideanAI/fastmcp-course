@@ -88,7 +88,7 @@ def mock_confluence_client() -> AsyncMock:
 
 @pytest.fixture
 async def mock_context(
-    mock_confluence_client: ConfluenceClient
+    mock_confluence_client: ConfluenceClient,
 ) -> AsyncGenerator[Context, None]:
     """Return a mock FastMCP context for testing."""
     # Create a mock AppContext with the mock Confluence client

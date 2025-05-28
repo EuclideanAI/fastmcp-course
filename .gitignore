@@ -4,3 +4,7 @@
 /*.log
 .venv
 __pycache__/
+coverage.json
+.coverage
+htmlcov/
+*.egg-info/
