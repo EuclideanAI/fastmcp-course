@@ -32,22 +32,11 @@
 - Sampling
 - Proxy Server
 
-<br>
+## Project Instructions
 
-# Project 1 - Confluence FastMCP Server
+### Project 1 - Confluence MCP
 
-A Model Context Protocol (MCP) server for interacting with Atlassian Confluence, built with Python and FastMCP.
-
-## Description
-
-This project implements an MCP server that provides AI assistants with tools to interact with Confluence. The server enables capabilities such as searching content, retrieving page information, creating and updating pages, and managing comments and labels.
-
-## Features
-
-- **Content Operations**: Search, retrieve, create, update, and delete Confluence pages
-- **Navigation**: Get page children and ancestors for hierarchical navigation
-- **Metadata Management**: Manage comments and labels
-- **Space Management**: List and navigate Confluence spaces
+For detailed instructions, refer to the [Project 1 Guide](./instructions/instruct-project1.md).
 
 ## Development Setup
 
