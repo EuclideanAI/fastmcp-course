@@ -32,6 +32,8 @@
 - Sampling
 - Proxy Server
 
+## Porject 4 - MCP Client
+
 ## Project Instructions
 
 ### Project 1 - Confluence MCP
