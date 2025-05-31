@@ -90,4 +90,4 @@ register_tools()
 
 if __name__ == "__main__":
     logger.info("Starting Confluence MCP server")
-    mcp.run()
+    mcp.run(transport="streamable-http")

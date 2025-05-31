@@ -25,6 +25,8 @@ def parse_datetime(date_str: Union[str, None]) -> Union[datetime, None]:
         return None
 
     try:
+        if not isinstance(date_str, str):
+            raise TypeError(f"Expected string, got {type(date_str)}")
         return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
     except (ValueError, TypeError) as e:
         logger.warning("Failed to parse datetime: %s - %s", date_str, e)
