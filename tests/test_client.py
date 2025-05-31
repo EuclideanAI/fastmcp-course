@@ -15,7 +15,7 @@ async def test_client_initialization() -> None:
     username = "test@example.com"
     api_token = "test-api-token"
 
-    with patch("atlassian.Confluence") as mock_confluence:
+    with patch("confluence.client.Confluence") as mock_confluence:
         client = ConfluenceClient(url, username, api_token)
 
         # Check that the client was initialized
@@ -45,10 +45,7 @@ async def test_get_page(
     result = await mock_confluence_client.get_page(page_id, include_body)
 
     # Check that the method was called with the correct arguments
-    mock_confluence_client.get_page.assert_called_once_with(
-        page_id=page_id,
-        include_body=include_body,
-    )
+    mock_confluence_client.get_page.assert_called_once_with(page_id, include_body)
 
     # Check that the result is the mock page
     assert result == mock_page
@@ -79,11 +76,11 @@ async def test_create_page(
 
     # Check that the method was called with the correct arguments
     mock_confluence_client.create_page.assert_called_once_with(
-        space_key=space_key,
-        title=title,
-        content=content,
-        parent_id=parent_id,
-        content_format=content_format,
+        space_key,
+        title,
+        content,
+        parent_id,
+        content_format,
     )
 
     # Check that the result is the mock page
@@ -117,12 +114,12 @@ async def test_update_page(
 
     # Check that the method was called with the correct arguments
     mock_confluence_client.update_page.assert_called_once_with(
-        page_id=page_id,
-        title=title,
-        content=content,
-        minor_edit=minor_edit,
-        content_format=content_format,
-        version_comment=version_comment,
+        page_id,
+        title,
+        content,
+        minor_edit,
+        content_format,
+        version_comment,
     )
 
     # Check that the result is the mock page
@@ -152,10 +149,10 @@ async def test_search(
 
     # Check that the method was called with the correct arguments
     mock_confluence_client.search.assert_called_once_with(
-        query=query,
-        spaces=spaces,
-        content_type=content_type,
-        limit=limit,
+        query,
+        spaces,
+        content_type,
+        limit,
     )
 
     # Check that the result is a list containing the mock search result
