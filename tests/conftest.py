@@ -1,6 +1,5 @@
 """Test configuration and fixtures."""
 
-from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -87,16 +86,20 @@ def mock_confluence_client() -> AsyncMock:
 
 
 @pytest.fixture
-async def mock_context(
+def mock_context(
     mock_confluence_client: ConfluenceClient,
-) -> AsyncGenerator[Context, None]:
+) -> Context:
     """Return a mock FastMCP context for testing."""
-    # Create a mock AppContext with the mock Confluence client
+    # Create a mock AppContext with the mock Confluence client (matches server.py AppContext)
     mock_app_context = MagicMock()
     mock_app_context.confluence = mock_confluence_client
 
-    # Create a mock Context with lifespan_context attribute
-    mock_ctx = MagicMock(spec=Context)
-    mock_ctx.lifespan_context = mock_app_context  # Direct access to lifespan_context
+    # Create a mock RequestContext with lifespan_context pointing to AppContext
+    mock_request_context = MagicMock()
+    mock_request_context.lifespan_context = mock_app_context
 
-    yield mock_ctx
+    # Create a mock Context with request_context attribute
+    mock_ctx = MagicMock(spec=Context)
+    mock_ctx.request_context = mock_request_context
+
+    return mock_ctx
