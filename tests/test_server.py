@@ -33,9 +33,10 @@ class TestAppLifespan:
         self, mock_fastmcp_server: MagicMock, mock_config: MagicMock
     ) -> None:
         """Test successful app lifespan setup and teardown."""
-        with patch("server.load_config", return_value=mock_config), patch(
-            "server.ConfluenceClient"
-        ) as mock_client_class:
+        with (
+            patch("server.load_config", return_value=mock_config),
+            patch("server.ConfluenceClient") as mock_client_class,
+        ):
             mock_client = MagicMock(spec=ConfluenceClient)
             mock_client_class.return_value = mock_client
 
@@ -67,8 +68,11 @@ class TestAppLifespan:
         self, mock_fastmcp_server: MagicMock, mock_config: MagicMock
     ) -> None:
         """Test app lifespan handles client initialization errors."""
-        with patch("server.load_config", return_value=mock_config), patch(
-            "server.ConfluenceClient", side_effect=ConnectionError("Can't connect")
+        with (
+            patch("server.load_config", return_value=mock_config),
+            patch(
+                "server.ConfluenceClient", side_effect=ConnectionError("Can't connect")
+            ),
         ):
             with pytest.raises(ConnectionError, match="Can't connect"):
                 async with app_lifespan(mock_fastmcp_server):
@@ -83,8 +87,9 @@ class TestAppLifespan:
         mock_config: MagicMock,
     ) -> None:
         """Test that app lifespan logs appropriately."""
-        with patch("server.load_config", return_value=mock_config), patch(
-            "server.ConfluenceClient"
+        with (
+            patch("server.load_config", return_value=mock_config),
+            patch("server.ConfluenceClient"),
         ):
             async with app_lifespan(mock_fastmcp_server):
                 pass
