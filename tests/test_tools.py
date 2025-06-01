@@ -396,3 +396,409 @@ async def test_get_labels_tool_empty_result(mock_context: Context) -> None:
     assert result["status"] == "success"
     assert result["labels"] == []
     assert result["count"] == 0
+
+
+# Additional PageTools tests for 100% coverage
+
+
+@pytest.mark.asyncio
+async def test_get_page_tool_error(mock_context: Context) -> None:
+    """Test get_page tool with error."""
+    page_id = "12345"
+    error_message = "Page not found"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.get_page.side_effect = (
+        Exception(error_message)
+    )
+
+    # Call the tool
+    result = await PageTools.get_page(mock_context, page_id)
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_create_page_tool_error(mock_context: Context) -> None:
+    """Test create_page tool with error."""
+    space_key = "TEST"
+    title = "Test Page"
+    content = "<p>Test content</p>"
+    error_message = "Permission denied"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.create_page.side_effect = (
+        Exception(error_message)
+    )
+
+    # Call the tool
+    result = await PageTools.create_page(
+        mock_context,
+        title,
+        content,
+        space_key,
+    )
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_update_page_tool(mock_context: Context, mock_page: Any) -> None:
+    """Test update_page tool."""
+    page_id = "12345"
+    title = "Updated Page"
+    content = "<p>Updated content</p>"
+    minor_edit = True
+    content_format = "storage"
+    version_comment = "Updated for testing"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.update_page.return_value = mock_page
+
+    # Call the tool
+    result = await PageTools.update_page(
+        mock_context,
+        page_id,
+        title,
+        content,
+        minor_edit,
+        content_format,
+        version_comment,
+    )
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.update_page.assert_called_once_with(
+        page_id=page_id,
+        title=title,
+        content=content,
+        minor_edit=minor_edit,
+        content_format=content_format,
+        version_comment=version_comment,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["page"] == mock_page.__dict__
+
+
+@pytest.mark.asyncio
+async def test_update_page_tool_with_defaults(
+    mock_context: Context, mock_page: Any
+) -> None:
+    """Test update_page tool with default parameters."""
+    page_id = "12345"
+    title = "Updated Page"
+    content = "<p>Updated content</p>"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.update_page.return_value = mock_page
+
+    # Call the tool with minimal parameters
+    result = await PageTools.update_page(
+        mock_context,
+        page_id,
+        title,
+        content,
+    )
+
+    # Check that the method was called with the correct arguments including defaults
+    mock_context.request_context.lifespan_context.confluence.update_page.assert_called_once_with(
+        page_id=page_id,
+        title=title,
+        content=content,
+        minor_edit=False,
+        content_format="storage",
+        version_comment=None,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["page"] == mock_page.__dict__
+
+
+@pytest.mark.asyncio
+async def test_update_page_tool_error(mock_context: Context) -> None:
+    """Test update_page tool with error."""
+    page_id = "12345"
+    title = "Updated Page"
+    content = "<p>Updated content</p>"
+    error_message = "Page not found"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.update_page.side_effect = (
+        Exception(error_message)
+    )
+
+    # Call the tool
+    result = await PageTools.update_page(
+        mock_context,
+        page_id,
+        title,
+        content,
+    )
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_delete_page_tool(mock_context: Context) -> None:
+    """Test delete_page tool."""
+    page_id = "12345"
+    expected_result = {"page_id": page_id}
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.delete_page.return_value = expected_result
+
+    # Call the tool
+    result = await PageTools.delete_page(mock_context, page_id)
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.delete_page.assert_called_once_with(
+        page_id=page_id,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["page_id"] == page_id
+
+
+@pytest.mark.asyncio
+async def test_delete_page_tool_error(mock_context: Context) -> None:
+    """Test delete_page tool with error."""
+    page_id = "12345"
+    error_message = "Page not found"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.delete_page.side_effect = (
+        Exception(error_message)
+    )
+
+    # Call the tool
+    result = await PageTools.delete_page(mock_context, page_id)
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_get_page_children_tool(mock_context: Context, mock_page: Any) -> None:
+    """Test get_page_children tool."""
+    page_id = "12345"
+    limit = 25
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.get_page_children.return_value = [
+        mock_page
+    ]
+
+    # Call the tool
+    result = await PageTools.get_page_children(mock_context, page_id, limit)
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.get_page_children.assert_called_once_with(
+        page_id=page_id,
+        limit=limit,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert len(result["children"]) == 1
+    assert result["children"][0] == mock_page.__dict__
+    assert result["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_page_children_tool_with_defaults(
+    mock_context: Context, mock_page: Any
+) -> None:
+    """Test get_page_children tool with default limit."""
+    page_id = "12345"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.get_page_children.return_value = [
+        mock_page
+    ]
+
+    # Call the tool with default limit
+    result = await PageTools.get_page_children(mock_context, page_id)
+
+    # Check that the method was called with the correct arguments including default limit
+    mock_context.request_context.lifespan_context.confluence.get_page_children.assert_called_once_with(
+        page_id=page_id,
+        limit=25,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert len(result["children"]) == 1
+    assert result["children"][0] == mock_page.__dict__
+    assert result["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_page_children_tool_empty_result(mock_context: Context) -> None:
+    """Test get_page_children tool with no children."""
+    page_id = "12345"
+
+    # Setup mock response with empty list
+    mock_context.request_context.lifespan_context.confluence.get_page_children.return_value = []
+
+    # Call the tool
+    result = await PageTools.get_page_children(mock_context, page_id)
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["children"] == []
+    assert result["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_page_children_tool_error(mock_context: Context) -> None:
+    """Test get_page_children tool with error."""
+    page_id = "12345"
+    error_message = "Page not found"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.get_page_children.side_effect = Exception(
+        error_message
+    )
+
+    # Call the tool
+    result = await PageTools.get_page_children(mock_context, page_id)
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_get_page_ancestors_tool(mock_context: Context, mock_page: Any) -> None:
+    """Test get_page_ancestors tool."""
+    page_id = "12345"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.get_page_ancestors.return_value = [
+        mock_page
+    ]
+
+    # Call the tool
+    result = await PageTools.get_page_ancestors(mock_context, page_id)
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.get_page_ancestors.assert_called_once_with(
+        page_id=page_id,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert len(result["ancestors"]) == 1
+    assert result["ancestors"][0] == mock_page.__dict__
+    assert result["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_page_ancestors_tool_empty_result(mock_context: Context) -> None:
+    """Test get_page_ancestors tool with no ancestors."""
+    page_id = "12345"
+
+    # Setup mock response with empty list
+    mock_context.request_context.lifespan_context.confluence.get_page_ancestors.return_value = []
+
+    # Call the tool
+    result = await PageTools.get_page_ancestors(mock_context, page_id)
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["ancestors"] == []
+    assert result["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_page_ancestors_tool_error(mock_context: Context) -> None:
+    """Test get_page_ancestors tool with error."""
+    page_id = "12345"
+    error_message = "Page not found"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.get_page_ancestors.side_effect = Exception(
+        error_message
+    )
+
+    # Call the tool
+    result = await PageTools.get_page_ancestors(mock_context, page_id)
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_get_page_tool_without_body(
+    mock_context: Context, mock_page: Any
+) -> None:
+    """Test get_page tool without body."""
+    page_id = "12345"
+    include_body = False
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.get_page.return_value = (
+        mock_page
+    )
+
+    # Call the tool
+    result = await PageTools.get_page(mock_context, page_id, include_body)
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.get_page.assert_called_once_with(
+        page_id=page_id,
+        include_body=include_body,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["page"] == mock_page.__dict__
+
+
+@pytest.mark.asyncio
+async def test_create_page_tool_with_parent(
+    mock_context: Context, mock_page: Any
+) -> None:
+    """Test create_page tool with parent page."""
+    space_key = "TEST"
+    title = "Child Page"
+    content = "<p>Child content</p>"
+    parent_id = 67890
+    content_format = "wiki"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.create_page.return_value = mock_page
+
+    # Call the tool
+    result = await PageTools.create_page(
+        mock_context,
+        title,
+        content,
+        space_key,
+        parent_id,
+        content_format,
+    )
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.create_page.assert_called_once_with(
+        space_key=space_key,
+        title=title,
+        content=content,
+        parent_id=parent_id,
+        content_format=content_format,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["page"] == mock_page.__dict__
