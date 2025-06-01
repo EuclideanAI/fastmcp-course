@@ -23,6 +23,16 @@ repos:
         additional_dependencies: [types-requests, types-python-dateutil]
         args: [--ignore-missing-imports, --no-strict-optional]
 
+  - repo: local
+    hooks:
+      - id: pytest
+        name: Run pytest with coverage
+        entry: uv run pytest --cov-fail-under=95
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.0.0
     hooks:
