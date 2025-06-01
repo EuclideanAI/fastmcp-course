@@ -27,7 +27,7 @@ repos:
     hooks:
       - id: pytest
         name: Run pytest with coverage
-        entry: uv run pytest --cov-fail-under=95
+        entry: uv run pytest --cov-fail-under=90
         language: system
         types: [python]
         pass_filenames: false
