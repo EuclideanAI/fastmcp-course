@@ -802,3 +802,167 @@ async def test_create_page_tool_with_parent(
     # Check the result structure
     assert result["status"] == "success"
     assert result["page"] == mock_page.__dict__
+
+
+# Additional SearchTools tests for 100% coverage
+
+
+@pytest.mark.asyncio
+async def test_search_confluence_tool_error(mock_context: Context) -> None:
+    """Test search_confluence tool with error."""
+    query = "test"
+    error_message = "Search service unavailable"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.search.side_effect = (
+        Exception(error_message)
+    )
+
+    # Call the tool
+    result = await SearchTools.search_confluence(mock_context, query)
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_get_spaces_tool_error(mock_context: Context) -> None:
+    """Test get_spaces tool with error."""
+    error_message = "Permission denied"
+
+    # Setup mock to raise an exception
+    mock_context.request_context.lifespan_context.confluence.get_spaces.side_effect = (
+        Exception(error_message)
+    )
+
+    # Call the tool
+    result = await SearchTools.get_spaces(mock_context)
+
+    # Check the result structure
+    assert result["status"] == "error"
+    assert result["message"] == error_message
+
+
+@pytest.mark.asyncio
+async def test_search_confluence_tool_with_defaults(
+    mock_context: Context, mock_search_result: Any
+) -> None:
+    """Test search_confluence tool with default parameters."""
+    query = "test search"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.search.return_value = [
+        mock_search_result
+    ]
+
+    # Call the tool with minimal parameters
+    result = await SearchTools.search_confluence(mock_context, query)
+
+    # Check that the method was called with the correct arguments including defaults
+    mock_context.request_context.lifespan_context.confluence.search.assert_called_once_with(
+        query=query,
+        spaces=None,
+        content_type=None,
+        limit=10,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert len(result["results"]) == 1
+    assert result["results"][0] == mock_search_result.__dict__
+    assert result["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_search_confluence_tool_empty_result(mock_context: Context) -> None:
+    """Test search_confluence tool with no results."""
+    query = "nonexistent"
+
+    # Setup mock response with empty list
+    mock_context.request_context.lifespan_context.confluence.search.return_value = []
+
+    # Call the tool
+    result = await SearchTools.search_confluence(mock_context, query)
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["results"] == []
+    assert result["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_spaces_tool_with_defaults(
+    mock_context: Context, mock_space: Any
+) -> None:
+    """Test get_spaces tool with default limit."""
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.get_spaces.return_value = [
+        mock_space
+    ]
+
+    # Call the tool with default limit
+    result = await SearchTools.get_spaces(mock_context)
+
+    # Check that the method was called with the correct arguments including default limit
+    mock_context.request_context.lifespan_context.confluence.get_spaces.assert_called_once_with(
+        limit=25,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert len(result["spaces"]) == 1
+    assert result["spaces"][0] == mock_space.__dict__
+    assert result["count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_spaces_tool_empty_result(mock_context: Context) -> None:
+    """Test get_spaces tool with no spaces."""
+
+    # Setup mock response with empty list
+    mock_context.request_context.lifespan_context.confluence.get_spaces.return_value = []
+
+    # Call the tool
+    result = await SearchTools.get_spaces(mock_context)
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert result["spaces"] == []
+    assert result["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_search_confluence_tool_with_all_parameters(
+    mock_context: Context, mock_search_result: Any
+) -> None:
+    """Test search_confluence tool with all parameters specified."""
+    query = 'text ~ "project documentation"'
+    spaces = ["DEV", "TEAM"]
+    content_type = "blogpost"
+    limit = 5
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.search.return_value = [
+        mock_search_result
+    ]
+
+    # Call the tool with all parameters
+    result = await SearchTools.search_confluence(
+        mock_context, query, spaces, content_type, limit
+    )
+
+    # Check that the method was called with the correct arguments
+    mock_context.request_context.lifespan_context.confluence.search.assert_called_once_with(
+        query=query,
+        spaces=spaces,
+        content_type=content_type,
+        limit=limit,
+    )
+
+    # Check the result structure
+    assert result["status"] == "success"
+    assert len(result["results"]) == 1
+    assert result["results"][0] == mock_search_result.__dict__
+    assert result["count"] == 1
