@@ -176,7 +176,6 @@ class ConfluenceClient:
                 body=content,
                 type="page",
                 representation=content_format,
-                # version=current_page.version + 1,
                 minor_edit=minor_edit,
                 version_comment=version_comment,
             ),

@@ -1,16 +1,13 @@
 """Main FastMCP server entry point for Confluence integration."""
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import AsyncIterator
 
 from fastmcp import FastMCP
-from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-from starlette.routing import Mount, Route
+from fastmcp.server.auth import BearerAuthProvider
+from fastmcp.server.auth.providers.bearer import RSAKeyPair
 
 from config import load_config
 from confluence import ConfluenceClient
@@ -62,34 +59,28 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
         logger.info("Shutting down Confluence MCP server")
 
 
-# Create a named server
-mcp = FastMCP("Confluence MCP Server", lifespan=app_lifespan)
+# Generate a new key pair
+key_pair = RSAKeyPair.generate()
 
-# Create the ASGI application
-mcp_app = mcp.http_app(path="/mcp")
-
-
-# Health check endpoint
-async def health_check(request: Request) -> JSONResponse:
-    """Health check endpoint for load balancers and monitoring."""
-    return JSONResponse(
-        {
-            "status": "healthy",
-            "service": "Confluence MCP Server",
-            "timestamp": request.scope.get("utc_time"),
-        }
-    )
-
-
-# Create a Starlette app and mount the MCP server
-app = Starlette(
-    routes=[
-        Route("/health", health_check, methods=["GET"]),
-        Mount("/mcp-server", app=mcp_app),
-        # Add other routes as needed
-    ],
-    lifespan=mcp_app.lifespan,
+# Configure the auth provider with the public key
+auth = BearerAuthProvider(
+    public_key=key_pair.public_key,
+    issuer="https://dev.example.com",
+    audience="my-dev-server",
 )
+
+# Create a named server
+mcp = FastMCP("Confluence MCP Server - Dev", lifespan=app_lifespan, auth=auth)
+
+# Generate a token for testing
+token = key_pair.create_token(
+    subject="dev-user",
+    issuer="https://dev.example.com",
+    audience="my-dev-server",
+    scopes=["read", "write"],
+)
+
+print(f"Test token: {token}")
 
 
 # Register tools
@@ -120,12 +111,5 @@ register_tools()
 
 
 if __name__ == "__main__":
-    import uvicorn
-
-    # Get port from environment variable (Cloud Run sets this)
-    port = int(os.environ.get("PORT", 8000))
-
-    logger.info(f"Starting Confluence MCP server on port {port}")
-
-    # Run the Starlette app with uvicorn for Cloud Run compatibility
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    logger.info("Starting Confluence MCP server")
+    mcp.run(transport="streamable-http")

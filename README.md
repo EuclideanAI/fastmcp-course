@@ -1,5 +1,7 @@
 # FastMCP from Zero to Hero: Course Outline
 
+![Coverage](https://img.shields.io/badge/coverage-38%25-red)
+
 ## Introduction
 
 - What's MCP (Model Context Protocol)
@@ -17,8 +19,9 @@
 - Building a Confluence MCP
 - Integrate with VS Code Copilot and Claude Desktop
 
-## Project 2 - Network, Authentication and Remote Server
+## Project 2 - Unit Test, Network, Authentication and Remote Server
 
+- Unit test
 - Transport protocols
 - Authentication
 - Remote Server Deployment
@@ -29,22 +32,13 @@
 - Sampling
 - Proxy Server
 
-<br>
+## Porject 4 - MCP Client
 
-# Project 1 - Confluence FastMCP Server
+## Project Instructions
 
-A Model Context Protocol (MCP) server for interacting with Atlassian Confluence, built with Python and FastMCP.
+### Project 1 - Confluence MCP
 
-## Description
-
-This project implements an MCP server that provides AI assistants with tools to interact with Confluence. The server enables capabilities such as searching content, retrieving page information, creating and updating pages, and managing comments and labels.
-
-## Features
-
-- **Content Operations**: Search, retrieve, create, update, and delete Confluence pages
-- **Navigation**: Get page children and ancestors for hierarchical navigation
-- **Metadata Management**: Manage comments and labels
-- **Space Management**: List and navigate Confluence spaces
+For detailed instructions, refer to the [Project 1 Guide](./instructions/instruct-project1.md).
 
 ## Development Setup
 
@@ -211,6 +205,37 @@ To run specific test files:
 uv run pytest tests/test_client.py
 uv run pytest tests/test_tools.py
 ```
+
+### Test Coverage
+
+The coverage badge at the top of this README is automatically updated via GitHub Actions whenever code is pushed to the main branch.
+
+#### Local Testing
+
+To run tests with coverage locally:
+
+```bash
+# Run tests with coverage
+uv run pytest
+
+# Manually update the coverage badge (optional - GitHub Actions handles this automatically)
+uv run python update_coverage_badge.py
+```
+
+#### Automated Coverage Updates
+
+The project includes GitHub Actions workflows that:
+
+1. **On Push to Main**: Automatically runs tests, calculates coverage, and updates the badge in the README
+2. **On Pull Requests**: Runs tests and provides coverage information (badge updates only happen on main branch)
+
+The coverage badge shows the current test coverage percentage with color coding:
+
+- 🟢 Green: 90%+ coverage
+- 🟡 Yellow-Green: 80-89% coverage
+- 🟡 Yellow: 60-79% coverage
+- 🟠 Orange: 50-59% coverage
+- 🔴 Red: <50% coverage
 
 ## AI Integration
 
