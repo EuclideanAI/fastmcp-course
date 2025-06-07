@@ -35,8 +35,6 @@ By completing this project, you will:
 ### 🔐 Authentication & Security
 
 - **Multiple Auth Methods**: Support for API tokens, OAuth 2.0, and JWT
-- **Rate Limiting**: Protection against API abuse and DoS attacks
-- **CORS Configuration**: Secure cross-origin resource sharing
 - **Input Validation**: Comprehensive request validation and sanitization
 - **Audit Logging**: Security event logging and monitoring
 
@@ -54,6 +52,247 @@ By completing this project, you will:
 - Docker (for containerization)
 - Cloud provider account (AWS, GCP, Azure, etc.) for remote deployment
 - Confluence Cloud instance with API access
+
+## Pytest Fundamentals: A Quick Tutorial
+
+Before diving into the implementation, let's understand the key pytest concepts used throughout this project. This 5-10 minute guide covers the essential testing patterns you'll encounter.
+
+### What is Pytest?
+
+Pytest is Python's most popular testing framework. It makes writing and running tests simple while providing powerful features for complex testing scenarios.
+
+### Key Concepts
+
+#### 1. Basic Test Structure
+
+Tests are functions that start with `test_` and use `assert` statements:
+
+```python
+def test_basic_example():
+    """Test that demonstrates basic assertion."""
+    result = 2 + 2
+    assert result == 4
+    assert result != 5
+```
+
+#### 2. Fixtures: Reusable Test Data
+
+Fixtures provide consistent test data and setup. They're decorated with `@pytest.fixture` and can be reused across multiple tests.
+
+**From our `conftest.py`:**
+
+```python
+@pytest.fixture
+def mock_config() -> Config:
+    """Return a mock configuration for testing."""
+    confluence_config = ConfluenceConfig(
+        url="https://test.atlassian.net",
+        username="test@example.com",
+        api_token="test-api-token",
+    )
+    return Config(confluence=confluence_config, debug=True)
+
+@pytest.fixture
+def mock_page() -> Page:
+    """Return a mock Confluence page for testing."""
+    return Page(
+        id="12345",
+        title="Test Page",
+        space_key="TEST",
+        version=1,
+        content="<p>Test content</p>",
+    )
+```
+
+**Usage in tests:**
+
+```python
+def test_config_values(mock_config):
+    """Test uses the mock_config fixture."""
+    assert mock_config.confluence.url == "https://test.atlassian.net"
+    assert mock_config.debug is True
+```
+
+#### 3. Mocking with @patch
+
+Mocking replaces real objects with fake ones during testing. Use `@patch` to mock external dependencies:
+
+**From our `test_client.py`:**
+
+```python
+from unittest.mock import patch
+
+@patch("confluence.client.Confluence")
+async def test_client_initialization(mock_confluence):
+    """Test that demonstrates patching external dependencies."""
+    client = ConfluenceClient("https://test.atlassian.net", "test@example.com", "token")
+
+    # Verify the mock was called correctly
+    mock_confluence.assert_called_once_with(
+        url="https://test.atlassian.net",
+        username="test@example.com",
+        password="token",
+        cloud=True,
+    )
+```
+
+**Environment variable mocking:**
+
+```python
+@patch.dict(os.environ, {"CONFLUENCE_URL": "https://test.com"})
+def test_config_from_env():
+    """Test loading config from environment variables."""
+    config = load_config()
+    assert config.confluence.url == "https://test.com"
+```
+
+#### 4. Async Testing
+
+For async functions, use `@pytest.mark.asyncio`:
+
+**From our `test_tools.py`:**
+
+```python
+@pytest.mark.asyncio
+async def test_get_page_tool(mock_context, mock_page):
+    """Test async MCP tool functionality."""
+    page_id = "12345"
+
+    # Setup mock response
+    mock_context.request_context.lifespan_context.confluence.get_page.return_value = mock_page
+
+    # Call the async tool
+    result = await PageTools.get_page(mock_context, page_id, True)
+
+    # Verify the mock was called
+    mock_context.request_context.lifespan_context.confluence.get_page.assert_called_once_with(
+        page_id=page_id,
+        include_body=True,
+    )
+```
+
+#### 5. Exception Testing
+
+Test that your code properly handles errors using `pytest.raises`:
+
+**From our `test_client.py`:**
+
+```python
+async def test_page_not_found():
+    """Test handling of missing pages."""
+    page_id = "nonexistent"
+
+    with patch("confluence.client.Confluence") as mock_confluence_class:
+        mock_client = MagicMock()
+        mock_confluence_class.return_value = mock_client
+        mock_client.get_page_by_id.return_value = None
+
+        client = ConfluenceClient("https://test.atlassian.net", "test@example.com", "token")
+
+        # Test that the right exception is raised
+        with pytest.raises(ValueError, match=f"Page with id {page_id} not found"):
+            await client.get_page(page_id)
+```
+
+#### 6. Parametrized Testing
+
+Run the same test with different inputs using `@pytest.mark.parametrize`:
+
+**From our `test_config.py`:**
+
+```python
+@pytest.mark.parametrize(
+    "debug_value,expected",
+    [
+        ("true", True),
+        ("TRUE", True),
+        ("1", True),
+        ("false", False),
+        ("0", False),
+        ("invalid", False),
+    ],
+)
+def test_debug_flag_parsing(debug_value, expected):
+    """Test parsing various debug flag values."""
+    with patch.dict(os.environ, {"DEBUG": debug_value}):
+        config = load_config()
+        assert config.debug == expected
+```
+
+### Common Testing Patterns in Our Project
+
+#### 1. Setup-Action-Assert Pattern
+
+```python
+def test_example():
+    # Setup: Prepare test data
+    mock_data = {"key": "value"}
+
+    # Action: Call the function being tested
+    result = process_data(mock_data)
+
+    # Assert: Verify the result
+    assert result["processed"] is True
+```
+
+#### 2. Mock Configuration Pattern
+
+```python
+@patch("module.external_service")
+def test_service_integration(mock_service):
+    # Configure mock behavior
+    mock_service.return_value = "expected_response"
+
+    # Test the integration
+    result = call_service()
+
+    # Verify both result and interaction
+    assert result == "expected_response"
+    mock_service.assert_called_once()
+```
+
+#### 3. Context Manager Testing
+
+```python
+def test_context_manager():
+    """Test proper resource management."""
+    with patch("module.resource") as mock_resource:
+        with MyContextManager() as manager:
+            manager.do_something()
+
+        # Verify cleanup was called
+        mock_resource.cleanup.assert_called_once()
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_client.py
+
+# Run tests matching a pattern
+pytest -k "test_config"
+
+# Run with coverage reporting
+pytest --cov=confluence --cov-report=html
+```
+
+### Test Organization in Our Project
+
+- **`conftest.py`**: Shared fixtures and test configuration
+- **`test_client.py`**: Tests for Confluence API client
+- **`test_tools.py`**: Tests for MCP tools (page, search, comment tools)
+- **`test_config.py`**: Tests for configuration loading and validation
+- **`test_server.py`**: Tests for server initialization and lifecycle
+- **`test_utils.py`**: Tests for utility functions
+
+This foundation will help you understand the testing patterns used throughout Project 2. Each test follows these principles to ensure reliable, maintainable code.
 
 ## Implementation Guide
 
