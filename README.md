@@ -1,6 +1,6 @@
 # FastMCP from Zero to Hero: Course Outline
 
-![Coverage](https://img.shields.io/badge/coverage-38%25-red)
+![Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)
 
 ## Introduction
 
