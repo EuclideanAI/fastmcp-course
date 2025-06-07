@@ -35,5 +35,5 @@ RUN uv sync --frozen --no-dev
 EXPOSE 8000
 
 # Set the entrypoint to run the server
-# Use server-prod.py as it's the production entry point
+# Use server.py as it's the production entry point
 CMD ["uv", "run", "server.py"]
