@@ -32,13 +32,16 @@
 - Sampling
 - Proxy Server
 
-## Porject 4 - MCP Client
+## 🚀 How to Complete the Projects?
 
-## Project Instructions
+We have provided step-by-step video tutorials on YouTube to guide you through each project in this course. Each project corresponds to a specific branch name (e.g., `project1`, `project2`, `project3`). Simply follow the instructions below to clone the appropriate branch and you'll have a codebase that matches the starting point of the video for each project.
 
-### Project 1 - Confluence MCP
+### 📺 Video Links
 
-For detailed instructions, refer to the [Project 1 Guide](./instructions/instruct-project1.md).
+- **Project 1:** [Watch on YouTube](https://youtu.be/LUIbO0TQkfA?si=B-cyVNAZswljnzZs)
+- **Project 2:** [Watch on YouTube](https://youtu.be/bMnCRH3X1gQ?si=P-i079tIFW66nxUA)
+
+Happy coding! 🎉
 
 ## Development Setup
 
