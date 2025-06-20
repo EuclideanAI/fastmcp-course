@@ -16,7 +16,8 @@
 
 ## Project 1 - Confluence MCP
 
-- Building a Confluence MCP
+- Basic concepts (what's MCP, function calling v.s MCP, basic building blocks e.g. resources, tools, prompts etc.)
+- Building a Confluence MCP server
 - Integrate with VS Code Copilot and Claude Desktop
 
 ## Project 2 - Unit Test, Network, Authentication and Remote Server
@@ -28,9 +29,12 @@
 
 ## Project 3 - Advanced Topics
 
-- Mounting to FastAPI
+- Remote deployment options and reference architecture
+- Deep dive in authorization
+- Detailed look on communication between client and server
 - Sampling
-- Proxy Server
+- Proxy server
+- MCP Gateway
 
 ## 🚀 How to Complete the Projects?
 
@@ -40,6 +44,7 @@ We have provided step-by-step video tutorials on YouTube to guide you through ea
 
 - **Project 1:** [Watch on YouTube](https://youtu.be/LUIbO0TQkfA?si=B-cyVNAZswljnzZs)
 - **Project 2:** [Watch on YouTube](https://youtu.be/bMnCRH3X1gQ?si=P-i079tIFW66nxUA)
+- **Project 3:** [Watch on YouTube](https://youtu.be/chULivV92Eo?si=ABKuzN7df65TANQD)
 
 Happy coding! 🎉
 

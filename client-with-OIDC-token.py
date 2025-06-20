@@ -53,6 +53,7 @@ async def main():
 
     token_manager = TokenManager(cloud_run_url)
     token = token_manager.get_token()
+    print(f"Obtained token: {token}")
 
     if not token:
         raise ValueError("Failed to obtain authentication token")
