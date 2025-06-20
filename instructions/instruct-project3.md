@@ -1,0 +1,8 @@
+- do a quick recap on previous 2 projects
+- Deployment options and reference architecture
+- Deep dive in authorization
+- Detailed look on communication between client and server
+- vs code new features and remote server
+- Sampling
+- Proxy server
+- MCP Gateway

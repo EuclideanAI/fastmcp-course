@@ -112,4 +112,4 @@ register_tools()
 
 if __name__ == "__main__":
     logger.info("Starting Confluence MCP server")
-    mcp.run(transport="streamable-http")
+    mcp.run(transport="streamable-http", log_level="debug")
