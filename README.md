@@ -44,6 +44,7 @@ We have provided step-by-step video tutorials on YouTube to guide you through ea
 
 - **Project 1:** [Watch on YouTube](https://youtu.be/LUIbO0TQkfA?si=B-cyVNAZswljnzZs)
 - **Project 2:** [Watch on YouTube](https://youtu.be/bMnCRH3X1gQ?si=P-i079tIFW66nxUA)
+- **Project 3:** [Watch on YouTube](https://youtu.be/chULivV92Eo?si=ABKuzN7df65TANQD)
 
 Happy coding! 🎉
 
