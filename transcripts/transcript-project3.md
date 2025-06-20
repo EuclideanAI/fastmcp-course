@@ -34,7 +34,7 @@ Finally, I’ll introduce you to the latest concept from Anthropic—the MCP Gat
 
 That’s the roadmap for today! By the end of this episode, you’ll have a clear understanding of the latest MCP best practices, deployment strategies, and what’s coming next in the ecosystem.
 
-If you find this helpful, don’t forget to subscribe and check out the GitHub repo linked below for all the code and resources. Got questions or want to share your own deployment tips? Plase do drop them in the comments!
+If you find this helpful, don’t forget to subscribe and check out the GitHub repo linked below for all the code and resources. Got questions or want to share your own deployment tips? Please do drop them in the comments!
 
 **[On Screen: Subscribe button, GitHub link, comment prompt]**
 
